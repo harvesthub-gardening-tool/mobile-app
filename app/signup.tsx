@@ -6,17 +6,40 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { useRouter, Link } from "expo-router";
+import { useAuth } from "./context/AuthContext";
 
 export default function Signup() {
   const router = useRouter();
+  const { register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async () => {
+    if (!email || !password) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await register(email, password);
+      router.replace("/pages/dashboard");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Une erreur est survenue.";
+      Alert.alert("Inscription impossible", message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -79,8 +102,16 @@ export default function Signup() {
               />
             </View>
 
-            <TouchableOpacity style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Se connecter</Text>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.primaryButtonText}>S'inscrire</Text>
+              )}
             </TouchableOpacity>
 
             <Link href="/login" asChild>
