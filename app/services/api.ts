@@ -5,7 +5,9 @@ import { AuthService } from "@harvesthub-gardening-tool/protos-typescript/auth/v
 import { GardenService } from "@harvesthub-gardening-tool/protos-typescript/garden/v1/garden_pb";
 
 // Change this to your actual backend URL.
-export const API_BASE_URL = "http://localhost:8080";
+// Use your machine's LAN IP for physical devices.
+// localhost only works on iOS simulator; Android emulator uses 10.0.2.2.
+export const API_BASE_URL = "http://10.74.253.158:8080";
 
 const TOKEN_STORAGE_KEY = "harvest_hub_auth_token";
 

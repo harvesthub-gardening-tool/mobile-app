@@ -11,6 +11,7 @@ import * as authService from "../services/authService";
 
 interface AuthState {
   token: string | null;
+  userId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     token: null,
+    userId: null,
     isLoading: true,
     isAuthenticated: false,
   });
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getStoredToken().then((token) => {
       setState({
         token,
+        userId: null,
         isLoading: false,
         isAuthenticated: token !== null,
       });
@@ -42,17 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authService.login(email, password);
-    setState({ token: res.token, isLoading: false, isAuthenticated: true });
+    setState({ token: res.token, userId: null, isLoading: false, isAuthenticated: true });
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
     const res = await authService.register(email, password);
-    setState({ token: res.token, isLoading: false, isAuthenticated: true });
+    setState({ token: res.token, userId: res.userId, isLoading: false, isAuthenticated: true });
   }, []);
 
   const logout = useCallback(async () => {
     await removeStoredToken();
-    setState({ token: null, isLoading: false, isAuthenticated: false });
+    setState({ token: null, userId: null, isLoading: false, isAuthenticated: false });
   }, []);
 
   return (
