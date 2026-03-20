@@ -7,14 +7,17 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "../context/AuthContext";
 
 export default function Profile() {
+  const { logout } = useAuth();
   return (
     <SafeAreaView style={styles.safe}>
       {}
       <View style={styles.header}>
-        <Text style={styles.name}>Le beau Baptiste</Text>
-        <Text style={styles.sub}>Membre depuis 2023</Text>
+        <View style={styles.avatarPlaceholder}>
+          <Feather name="user" size={36} color="#2B2B2B" />
+        </View>
       </View>
 
       {}
@@ -50,6 +53,11 @@ export default function Profile() {
           <Row icon="globe" label="Confidentialité" />
           <Row icon="headphones" label="Support" />
         </View>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+          <Feather name="log-out" size={18} color="#FF4444" />
+          <Text style={styles.logoutText}>Se déconnecter</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -86,16 +94,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 10,
   },
-  name: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2B2B2B",
-  },
-  sub: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#2B2B2B",
-    opacity: 0.7,
+  avatarPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   content: {
@@ -170,5 +175,22 @@ const styles = StyleSheet.create({
     color: "#2B2B2B",
     opacity: 0.7,
     fontWeight: "500",
+  },
+
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 28,
+    marginHorizontal: 8,
+    backgroundColor: "#FFF0F0",
+    borderRadius: 16,
+    height: 52,
+  },
+  logoutText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF4444",
   },
 });

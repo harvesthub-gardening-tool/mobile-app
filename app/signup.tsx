@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { useRouter, Link } from "expo-router";
+import { useAuth } from "./context/AuthContext";
 
 export default function Signup() {
   const router = useRouter();
@@ -17,6 +18,25 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { register } = useAuth();
+
+  const handleSignup = async () => {
+    setError("");
+    if (!email || !password) {
+      setError("Veuillez remplir tous les champs.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await register(email, password);
+    } catch (err: any) {
+      setError(err?.message || "Échec de l'inscription.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -79,8 +99,14 @@ export default function Signup() {
               />
             </View>
 
-            <TouchableOpacity style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Se connecter</Text>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <TouchableOpacity style={styles.primaryButton} onPress={handleSignup} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.primaryButtonText}>S'inscrire</Text>
+              )}
             </TouchableOpacity>
 
             <Link href="/login" asChild>
@@ -189,5 +215,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 13,
     color: "#00000",
+  },
+  errorText: {
+    color: "#FF4444",
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 14,
   },
 });

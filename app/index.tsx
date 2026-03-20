@@ -1,6 +1,4 @@
-import { useEffect } from "react";
 import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
-import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
@@ -8,16 +6,6 @@ const CORNER_WIDTH = width * 0.6;
 const CORNER_HEIGHT = height * 0.25;
 
 export default function Index() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace("/pages/dashboard");
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <View style={styles.container}>
       <Image
