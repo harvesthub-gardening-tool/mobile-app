@@ -9,11 +9,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, Link } from "expo-router";
+import { Link } from "expo-router";
 import { useAuth } from "./context/AuthContext";
 
 export default function Signup() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [prenom, setPrenom] = useState("");
@@ -31,8 +30,8 @@ export default function Signup() {
     setLoading(true);
     try {
       await register(email, password);
-    } catch (err: any) {
-      setError(err?.message || "Échec de l'inscription.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Échec de l'inscription.");
     } finally {
       setLoading(false);
     }
@@ -99,7 +98,7 @@ export default function Signup() {
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleSignup} disabled={loading}>
+            <TouchableOpacity style={[styles.primaryButton, loading && styles.primaryButtonDisabled]} onPress={handleSignup} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#000" />
               ) : (
@@ -108,10 +107,7 @@ export default function Signup() {
             </TouchableOpacity>
 
             <Link href="/login" asChild>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => router.back()}
-              >
+              <TouchableOpacity style={styles.secondaryButton}>
                 <Text style={styles.secondaryButtonText}>
                   Déjà inscrit ? Se connecter
                 </Text>
@@ -198,6 +194,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
   },
+  primaryButtonDisabled: {
+    opacity: 0.5,
+  },
   primaryButtonText: {
     fontSize: 15,
     fontWeight: "600",
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: "#00000",
+    color: "#000000",
   },
   errorText: {
     color: "#FF4444",

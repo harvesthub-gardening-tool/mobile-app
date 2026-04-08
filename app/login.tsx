@@ -28,8 +28,8 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-    } catch (err: any) {
-      setError(err?.message || "Échec de la connexion.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Échec de la connexion.");
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ export default function Login() {
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} disabled={loading}>
+            <TouchableOpacity style={[styles.primaryButton, loading && styles.primaryButtonDisabled]} onPress={handleLogin} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#000" />
               ) : (
@@ -178,6 +178,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
   },
+  primaryButtonDisabled: {
+    opacity: 0.5,
+  },
   primaryButtonText: {
     fontSize: 15,
     fontWeight: "600",
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: "#00000",
+    color: "#000000",
   },
   errorText: {
     color: "#FF4444",
