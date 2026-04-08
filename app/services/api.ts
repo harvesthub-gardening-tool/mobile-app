@@ -1,26 +1,24 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { AuthService } from "@harvesthub-gardening-tool/protos-typescript/auth/v1/auth_pb";
 import { GardenService } from "@harvesthub-gardening-tool/protos-typescript/garden/v1/garden_pb";
+import { API_BASE_URL } from "../config";
 
-export const API_BASE_URL = Platform.OS === "web"
-  ? "http://localhost:8080"
-  : "http://172.20.10.14:8080";
+export { API_BASE_URL };
 
 const TOKEN_STORAGE_KEY = "harvest_hub_auth_token";
 
 export async function getStoredToken(): Promise<string | null> {
-  return AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+  return SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
 }
 
 export async function setStoredToken(token: string): Promise<void> {
-  await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+  await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
 }
 
 export async function removeStoredToken(): Promise<void> {
-  await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+  await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
 }
 
 export const transport = createConnectTransport({

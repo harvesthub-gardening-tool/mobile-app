@@ -71,7 +71,6 @@ export default function Signup() {
               <TextInput
                 style={styles.input}
                 placeholder=""
-                secureTextEntry
                 value={prenom}
                 onChangeText={setPrenom}
               />
@@ -82,7 +81,6 @@ export default function Signup() {
               <TextInput
                 style={styles.input}
                 placeholder=""
-                secureTextEntry
                 value={nom}
                 onChangeText={setNom}
               />

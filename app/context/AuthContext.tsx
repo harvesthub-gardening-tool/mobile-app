@@ -40,14 +40,26 @@ function base64Decode(str: string): string {
   return output;
 }
 
-function decodeJwtPayload(token: string): Record<string, any> | null {
+interface JwtPayload {
+  sub?: string;
+  user_id?: string;
+  exp?: number;
+  [key: string]: unknown;
+}
+
+function decodeJwtPayload(token: string): JwtPayload | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    return JSON.parse(base64Decode(parts[1]));
+    return JSON.parse(base64Decode(parts[1])) as JwtPayload;
   } catch {
     return null;
   }
+}
+
+function isTokenExpired(payload: JwtPayload | null): boolean {
+  if (!payload?.exp) return false;
+  return Date.now() / 1000 > payload.exp;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -63,11 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const segments = useSegments();
 
   useEffect(() => {
-    getStoredToken().then((token) => {
+    getStoredToken().then(async (token) => {
       const payload = token ? decodeJwtPayload(token) : null;
+      const expired = isTokenExpired(payload);
+      if (token && expired) {
+        await removeStoredToken();
+        token = null;
+      }
       setState({
         token,
-        userId: payload?.sub || payload?.user_id || null,
+        userId: payload && !expired ? (payload.sub || payload.user_id || null) : null,
         isLoading: false,
         isAuthenticated: token !== null,
       });

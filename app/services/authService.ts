@@ -1,20 +1,28 @@
+import { ConnectError, Code } from "@connectrpc/connect";
 import { authClient, setStoredToken } from "./api";
 import type {
   RegisterResponse,
   LoginResponse,
 } from "@harvesthub-gardening-tool/protos-typescript/auth/v1/auth_pb";
 
-const errorMessages: Record<string, string> = {
-  "invalid email or password": "Email ou mot de passe incorrect.",
-  "invalid email format": "Format d'email invalide.",
-  "password must be at least 8 characters": "Le mot de passe doit contenir au moins 8 caractères.",
-};
-
-function translateError(message: string): string {
-  if (message.startsWith("email already registered")) {
-    return "Cet email est déjà utilisé.";
+function translateError(err: unknown): string {
+  const connectErr = ConnectError.from(err);
+  switch (connectErr.code) {
+    case Code.Unauthenticated:
+      return "Email ou mot de passe incorrect.";
+    case Code.AlreadyExists:
+      return "Cet email est déjà utilisé.";
+    case Code.InvalidArgument: {
+      const msg = (connectErr.rawMessage ?? "").toLowerCase();
+      if (msg.includes("email")) return "Format d'email invalide.";
+      if (msg.includes("password")) return "Le mot de passe doit contenir au moins 8 caractères.";
+      return connectErr.rawMessage || "Argument invalide.";
+    }
+    case Code.Unavailable:
+      return "Le service est temporairement indisponible. Réessayez plus tard.";
+    default:
+      return connectErr.rawMessage || "Une erreur inattendue est survenue.";
   }
-  return errorMessages[message] || message;
 }
 
 export async function register(
@@ -25,8 +33,8 @@ export async function register(
     const res = await authClient.register({ email, password });
     await setStoredToken(res.token);
     return res;
-  } catch (err: any) {
-    throw new Error(translateError(err?.message || "Échec de l'inscription."));
+  } catch (err: unknown) {
+    throw new Error(translateError(err));
   }
 }
 
@@ -38,7 +46,7 @@ export async function login(
     const res = await authClient.login({ email, password });
     await setStoredToken(res.token);
     return res;
-  } catch (err: any) {
-    throw new Error(translateError(err?.message || "Échec de la connexion."));
+  } catch (err: unknown) {
+    throw new Error(translateError(err));
   }
 }
