@@ -94,9 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (state.isLoading) return;
     const inAuthPages = segments[0] === "login" || segments[0] === "signup";
+    const inDashboard = segments[0] === "pages";
     if (!state.isAuthenticated && !inAuthPages) {
       router.replace("/login");
-    } else if (state.isAuthenticated && inAuthPages) {
+    } else if (state.isAuthenticated && !inDashboard) {
       router.replace("/pages/dashboard");
     }
   }, [state.isAuthenticated, state.isLoading, segments]);

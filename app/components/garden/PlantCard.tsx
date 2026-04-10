@@ -1,0 +1,179 @@
+import { memo } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import type { PlacedPlant, PlacedSonde } from "../../types/garden";
+
+type PlantCardProps = {
+  plant: PlacedPlant;
+  sondes: PlacedSonde[];
+  isMoving: boolean;
+  onPress: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleMove: () => void;
+};
+
+function getEmojiSize(quantity: number): number {
+  if (quantity === 1) return 46;
+  if (quantity <= 4) return 26;
+  if (quantity <= 9) return 18;
+  return 14;
+}
+
+export const PlantCard = memo(function PlantCard({
+  plant,
+  sondes,
+  isMoving,
+  onPress,
+  onEdit,
+  onDelete,
+  onToggleMove,
+}: PlantCardProps) {
+  const linkedSonde = plant.sondeId
+    ? sondes.find((s) => s.id === plant.sondeId)
+    : null;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.card,
+        {
+          left: plant.x,
+          top: plant.y,
+          width: plant.size,
+          height: plant.size + 36,
+        },
+        isMoving && styles.cardMoving,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.content}>
+        <View style={styles.emojiGrid}>
+          {Array.from({ length: Math.min(plant.quantity, 20) }).map((_, i) => (
+            <Text key={i} style={{ fontSize: getEmojiSize(plant.quantity) }}>
+              {plant.plantType.emoji}
+            </Text>
+          ))}
+        </View>
+        <Text style={styles.label}>
+          {plant.plantType.name} x{plant.quantity}
+        </Text>
+        {linkedSonde && (
+          <View style={styles.sondeIndicator}>
+            <Feather name="radio" size={10} color="#FFF" />
+            <Text style={styles.sondeText}>
+              {linkedSonde.name.split(" ")[1] || "Sonde"}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.crudBar}>
+        <TouchableOpacity
+          style={styles.crudBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+        >
+          <Feather name="edit-2" size={12} color="#2196F3" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.crudBtn, styles.crudBtnDelete]}
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Feather name="trash-2" size={12} color="#FF4444" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.crudBtn, isMoving && styles.crudBtnActive]}
+          onPress={(e) => {
+            e.stopPropagation();
+            onToggleMove();
+          }}
+        >
+          <Feather
+            name="move"
+            size={12}
+            color={isMoving ? "#FFF" : "#666"}
+          />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+const styles = StyleSheet.create({
+  card: {
+    position: "absolute",
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    padding: 6,
+  },
+  cardMoving: {
+    borderColor: "#2196F3",
+    borderWidth: 3,
+    backgroundColor: "rgba(33,150,243,0.15)",
+  },
+  content: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emojiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 2,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFF",
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  sondeIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(21,101,192,0.7)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 2,
+  },
+  sondeText: {
+    fontSize: 8,
+    fontWeight: "600",
+    color: "#FFF",
+  },
+  crudBar: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    paddingTop: 4,
+  },
+  crudBtn: {
+    width: 28,
+    height: 28,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  crudBtnDelete: {
+    backgroundColor: "rgba(255,230,230,0.9)",
+  },
+  crudBtnActive: {
+    backgroundColor: "#2196F3",
+  },
+});
