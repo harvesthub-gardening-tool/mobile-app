@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { memo, useCallback } from "react";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type { PlacedPlant, PlacedSonde } from "../../types/garden";
 
@@ -7,10 +7,10 @@ type PlantCardProps = {
   plant: PlacedPlant;
   sondes: PlacedSonde[];
   isMoving: boolean;
-  onPress: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggleMove: () => void;
+  onPress: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onToggleMove: (id: string) => void;
 };
 
 function getEmojiSize(quantity: number): number {
@@ -33,8 +33,13 @@ export const PlantCard = memo(function PlantCard({
     ? sondes.find((s) => s.id === plant.sondeId)
     : null;
 
+  const handlePress = useCallback(() => onPress(plant.id), [onPress, plant.id]);
+  const handleEdit = useCallback(() => onEdit(plant.id), [onEdit, plant.id]);
+  const handleDelete = useCallback(() => onDelete(plant.id), [onDelete, plant.id]);
+  const handleToggleMove = useCallback(() => onToggleMove(plant.id), [onToggleMove, plant.id]);
+
   return (
-    <TouchableOpacity
+    <Pressable
       style={[
         styles.card,
         {
@@ -45,8 +50,7 @@ export const PlantCard = memo(function PlantCard({
         },
         isMoving && styles.cardMoving,
       ]}
-      onPress={onPress}
-      activeOpacity={0.8}
+      onPress={handlePress}
     >
       <View style={styles.content}>
         <View style={styles.emojiGrid}>
@@ -70,39 +74,27 @@ export const PlantCard = memo(function PlantCard({
       </View>
 
       <View style={styles.crudBar}>
-        <TouchableOpacity
-          style={styles.crudBtn}
-          onPress={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-        >
+        <Pressable style={styles.crudBtn} onPress={handleEdit}>
           <Feather name="edit-2" size={12} color="#2196F3" />
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={[styles.crudBtn, styles.crudBtnDelete]}
-          onPress={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
+          onPress={handleDelete}
         >
           <Feather name="trash-2" size={12} color="#FF4444" />
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={[styles.crudBtn, isMoving && styles.crudBtnActive]}
-          onPress={(e) => {
-            e.stopPropagation();
-            onToggleMove();
-          }}
+          onPress={handleToggleMove}
         >
           <Feather
             name="move"
             size={12}
             color={isMoving ? "#FFF" : "#666"}
           />
-        </TouchableOpacity>
+        </Pressable>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 
