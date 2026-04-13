@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import {
     STORAGE_KEY,
     DEFAULT_CELL,
+    MIN_CARD_SIZE,
     MAP_SIZE,
     GRID_COLS,
     GRID_ROWS,
@@ -25,7 +26,30 @@ export function useGardenStorage() {
         AsyncStorage.getItem(userKey).then((data) => {
             if (data) {
                 try {
-                    setPlants(JSON.parse(data));
+                    const parsed = JSON.parse(data);
+                    const migrated = parsed.map((p: Record<string, unknown>) => {
+                        if (
+                            p.width === undefined ||
+                            p.height === undefined ||
+                            typeof p.width !== "number" ||
+                            typeof p.height !== "number"
+                        ) {
+                            const s =
+                                typeof p.size === "number"
+                                    ? Math.max(MIN_CARD_SIZE, p.size)
+                                    : DEFAULT_CELL;
+                            const { size: _removed, ...rest } = p;
+                            return { ...rest, width: s, height: s };
+                        }
+                        return p;
+                    });
+                    setPlants(migrated as PlacedPlant[]);
+                    if (JSON.stringify(migrated) !== data) {
+                        AsyncStorage.setItem(
+                            userKey,
+                            JSON.stringify(migrated),
+                        );
+                    }
                 } catch {
                     setPlants([]);
                 }
@@ -70,7 +94,8 @@ export function useGardenStorage() {
                 plantType,
                 x: pos.x,
                 y: pos.y,
-                size: DEFAULT_CELL,
+                width: DEFAULT_CELL,
+                height: DEFAULT_CELL,
                 quantity: 1,
                 sondeId,
             };
@@ -90,7 +115,7 @@ export function useGardenStorage() {
         (
             id: string,
             updates: Partial<
-                Pick<PlacedPlant, "x" | "y" | "size" | "quantity" | "sondeId">
+                Pick<PlacedPlant, "x" | "y" | "width" | "height" | "quantity" | "sondeId">
             >,
         ) => {
             savePlants(
@@ -161,9 +186,9 @@ function findFreePosition(plants: PlacedPlant[]): { x: number; y: number } {
             const y = startY + row * (DEFAULT_CELL + CELL_GAP);
             const occupied = plants.some(
                 (p) =>
-                    x < p.x + p.size &&
+                    x < p.x + p.width &&
                     x + DEFAULT_CELL > p.x &&
-                    y < p.y + p.size &&
+                    y < p.y + p.height &&
                     y + DEFAULT_CELL > p.y,
             );
             if (!occupied) return { x, y };
