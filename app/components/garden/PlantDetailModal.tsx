@@ -56,8 +56,10 @@ export function PlantDetailModal({
                         <Text style={styles.value}>{plant.quantity}</Text>
                     </View>
                     <View style={styles.row}>
-                        <Text style={styles.label}>Taille du carr\u00e9</Text>
-                        <Text style={styles.value}>{plant.size}px</Text>
+                        <Text style={styles.label}>Taille du carré</Text>
+                        <Text style={styles.value}>
+                            {plant.width} × {plant.height}px
+                        </Text>
                     </View>
                     <View style={styles.row}>
                         <Text style={styles.label}>Cat\u00e9gorie</Text>

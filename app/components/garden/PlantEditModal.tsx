@@ -8,7 +8,7 @@ import {
     StyleSheet,
     Dimensions,
 } from "react-native";
-import { DEFAULT_CELL } from "../../constants/garden";
+import { DEFAULT_CELL, MIN_CARD_SIZE } from "../../constants/garden";
 import type { PlacedPlant } from "../../types/garden";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -16,7 +16,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 type PlantEditModalProps = {
     plant: PlacedPlant | null;
     onClose: () => void;
-    onSave: (id: string, size: number, quantity: number) => void;
+    onSave: (id: string, width: number, height: number, quantity: number) => void;
 };
 
 export function PlantEditModal({
@@ -25,12 +25,14 @@ export function PlantEditModal({
     onSave,
 }: PlantEditModalProps) {
     const [editSize, setEditSize] = useState("");
+    const [editHeight, setEditHeight] = useState("");
     const [editQuantity, setEditQuantity] = useState("");
     const [error, setError] = useState("");
 
     useEffect(() => {
         if (plant) {
-            setEditSize(String(plant.size));
+            setEditSize(String(plant.width));
+            setEditHeight(String(plant.height));
             setEditQuantity(String(plant.quantity));
             setError("");
         }
@@ -38,17 +40,23 @@ export function PlantEditModal({
 
     const handleSave = () => {
         if (!plant) return;
-        const s = parseInt(editSize) || DEFAULT_CELL;
+        const w = parseInt(editSize) || DEFAULT_CELL;
+        const h = parseInt(editHeight) || DEFAULT_CELL;
         const q = parseInt(editQuantity) || 1;
         if (q > 20) {
-            setError("Maximum 20 par carr\u00e9 !");
+            setError("Maximum 20 par carré !");
             return;
         }
         if (q < 1) {
-            setError("Minimum 1 par carr\u00e9 !");
+            setError("Minimum 1 par carré !");
             return;
         }
-        onSave(plant.id, Math.max(80, Math.min(s, 400)), q);
+        onSave(
+            plant.id,
+            Math.max(MIN_CARD_SIZE, Math.min(w, 400)),
+            Math.max(MIN_CARD_SIZE, Math.min(h, 400)),
+            q,
+        );
         onClose();
     };
 
@@ -69,7 +77,7 @@ export function PlantEditModal({
                     )}
                     <View style={styles.row}>
                         <View style={styles.field}>
-                            <Text style={styles.fieldLabel}>Taille (px)</Text>
+                            <Text style={styles.fieldLabel}>Largeur (px)</Text>
                             <TextInput
                                 style={styles.input}
                                 value={editSize}
@@ -79,8 +87,20 @@ export function PlantEditModal({
                             />
                         </View>
                         <View style={styles.field}>
+                            <Text style={styles.fieldLabel}>Hauteur (px)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={editHeight}
+                                onChangeText={setEditHeight}
+                                keyboardType="numeric"
+                                placeholder="140"
+                            />
+                        </View>
+                    </View>
+                    <View style={styles.row}>
+                        <View style={styles.field}>
                             <Text style={styles.fieldLabel}>
-                                Quantit\u00e9 (max 20)
+                                Quantité (max 20)
                             </Text>
                             <TextInput
                                 style={styles.input}
