@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     menu: {
         position: "absolute",
         right: 14,
-        bottom: 78,
+        bottom: 190,
         gap: 8,
     },
     menuItem: {
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     fab: {
         position: "absolute",
         right: 14,
-        bottom: 14,
+        bottom: 120,
         width: 54,
         height: 54,
         backgroundColor: "#2E7D32",
