@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -10,7 +10,7 @@ import Animated from "react-native-reanimated";
 
 import { useGardenStorage } from "../hooks/useGardenStorage";
 import { useMapGestures } from "../hooks/useMapGestures";
-import { MAP_SIZE } from "../constants/garden";
+import { MAP_SIZE, MIN_CARD_SIZE } from "../constants/garden";
 import type { PlacedPlant, PlantType } from "../types/garden";
 import {
     GrassLayer,
@@ -44,38 +44,19 @@ export default function Dashboard() {
     const [showAddMenu, setShowAddMenu] = useState(false);
     const [showSondeList, setShowSondeList] = useState(false);
 
-    const tapHandlerRef = useRef<(x: number, y: number) => void>(() => {});
+    const handleMapTap = useCallback(() => {
+        setMovingId(null);
+    }, []);
 
     const {
         composedGesture,
         animatedStyle,
         scale,
-        translateX,
-        translateY,
+        isCardInteracting,
         zoomIn,
         zoomOut,
         recenter,
-    } = useMapGestures((screenX, screenY) =>
-        tapHandlerRef.current(screenX, screenY),
-    );
-
-    tapHandlerRef.current = (screenX: number, screenY: number) => {
-        if (!movingId) return;
-        const plant = plants.find((p) => p.id === movingId);
-        if (!plant) return;
-        const mapX = (screenX - translateX.value) / scale.value;
-        const mapY = (screenY - translateY.value) / scale.value;
-        const clampedX = Math.max(
-            0,
-            Math.min(mapX - plant.size / 2, MAP_SIZE - plant.size),
-        );
-        const clampedY = Math.max(
-            0,
-            Math.min(mapY - plant.size / 2, MAP_SIZE - plant.size),
-        );
-        updatePlant(movingId, { x: clampedX, y: clampedY });
-        setMovingId(null);
-    };
+    } = useMapGestures(handleMapTap);
 
     const plantBounds = useMemo(() => {
         if (plants.length === 0) return null;
@@ -86,8 +67,8 @@ export default function Dashboard() {
         for (const p of plants) {
             if (p.x < minX) minX = p.x;
             if (p.y < minY) minY = p.y;
-            if (p.x + p.size > maxX) maxX = p.x + p.size;
-            if (p.y + p.size > maxY) maxY = p.y + p.size;
+            if (p.x + p.width > maxX) maxX = p.x + p.width;
+            if (p.y + p.height > maxY) maxY = p.y + p.height;
         }
         return { minX, minY, maxX, maxY };
     }, [plants]);
@@ -104,8 +85,8 @@ export default function Dashboard() {
     );
 
     const handleEditSave = useCallback(
-        (id: string, size: number, quantity: number) => {
-            updatePlant(id, { size, quantity });
+        (id: string, width: number, height: number, quantity: number) => {
+            updatePlant(id, { width, height, quantity });
         },
         [updatePlant],
     );
@@ -164,6 +145,26 @@ export default function Dashboard() {
         setMovingId((prev) => (prev === id ? null : id));
     }, []);
 
+    const handleCardMove = useCallback(
+        (id: string, x: number, y: number) => {
+            const clampedX = Math.max(0, Math.min(x, MAP_SIZE - 60));
+            const clampedY = Math.max(0, Math.min(y, MAP_SIZE - 60));
+            updatePlant(id, { x: clampedX, y: clampedY });
+        },
+        [updatePlant],
+    );
+
+    const handleCardResize = useCallback(
+        (id: string, x: number, y: number, width: number, height: number) => {
+            const w = Math.max(MIN_CARD_SIZE, width);
+            const h = Math.max(MIN_CARD_SIZE, height);
+            const clampedX = Math.max(0, Math.min(x, MAP_SIZE - w));
+            const clampedY = Math.max(0, Math.min(y, MAP_SIZE - h));
+            updatePlant(id, { x: clampedX, y: clampedY, width: w, height: h });
+        },
+        [updatePlant],
+    );
+
     return (
         <GestureHandlerRootView style={styles.root}>
             <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -175,9 +176,10 @@ export default function Dashboard() {
 
                 {movingId && (
                     <View style={styles.movingBanner}>
-                        <Text style={styles.movingBannerText}>
-                            Cliquez sur la carte pour placer la plante
-                        </Text>
+                    <Text style={styles.movingBannerText}>
+                        Glissez la plante ou ses coins pour la
+                        déplacer/redimensionner
+                    </Text>
                         <TouchableOpacity onPress={() => setMovingId(null)}>
                             <Feather name="x" size={18} color="#FFF" />
                         </TouchableOpacity>
@@ -195,10 +197,14 @@ export default function Dashboard() {
                                     plant={plant}
                                     sondes={sondes}
                                     isMoving={movingId === plant.id}
+                                    mapScale={scale}
+                                    isCardInteracting={isCardInteracting}
                                     onPress={handleCardPress}
                                     onEdit={handleCardEdit}
                                     onDelete={handleCardDelete}
                                     onToggleMove={handleCardToggleMove}
+                                    onMove={handleCardMove}
+                                    onResize={handleCardResize}
                                 />
                             ))}
 
