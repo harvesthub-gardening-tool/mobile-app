@@ -14,6 +14,7 @@ export const STORAGE_KEY = "garden_plants";
 export const MIN_SCALE = 0.15;
 export const MAX_SCALE = 3;
 export const DECAY_DECELERATION = 0.997;
+export const MIN_CARD_SIZE = 80;
 
 export const SONDE_TYPES = [
     { id: "sonde1", name: "Sonde Humidit\u00e9", icon: "droplet" as const },

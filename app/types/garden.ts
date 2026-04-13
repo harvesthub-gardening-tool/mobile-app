@@ -17,7 +17,8 @@ export type PlacedPlant = {
     plantType: PlantType;
     x: number;
     y: number;
-    size: number;
+    width: number;
+    height: number;
     quantity: number;
     sondeId: string | null;
 };
