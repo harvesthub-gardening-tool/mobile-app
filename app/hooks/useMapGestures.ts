@@ -49,6 +49,7 @@ export function useMapGestures(
 
     const isPinching = useSharedValue(false);
     const didPinch = useSharedValue(false);
+    const isCardInteracting = useSharedValue(false);
 
     const tapGesture = Gesture.Tap().onEnd((e) => {
         if (onTap) {
@@ -59,15 +60,17 @@ export function useMapGestures(
     const panGesture = Gesture.Pan()
         .minPointers(1)
         .onBegin(() => {
+            if (isCardInteracting.value) return;
             cancelAnimation(translateX);
             cancelAnimation(translateY);
         })
         .onChange((e) => {
-            if (isPinching.value) return;
+            if (isPinching.value || isCardInteracting.value) return;
             translateX.value += e.changeX;
             translateY.value += e.changeY;
         })
         .onEnd((e) => {
+            if (isCardInteracting.value) return;
             if (didPinch.value) {
                 didPinch.value = false;
                 return;
@@ -231,6 +234,7 @@ export function useMapGestures(
         scale,
         translateX,
         translateY,
+        isCardInteracting,
         zoomIn,
         zoomOut,
         recenter,
