@@ -10,6 +10,7 @@ import Animated from "react-native-reanimated";
 
 import { useGardenStorage } from "../hooks/useGardenStorage";
 import { useMapGestures } from "../hooks/useMapGestures";
+import { useSensorData } from "../hooks/useSensorData";
 import { MAP_SIZE, MIN_CARD_SIZE } from "../constants/garden";
 import type { PlacedPlant, PlantType } from "../types/garden";
 import {
@@ -19,7 +20,6 @@ import {
     AddMenu,
     CatalogModal,
     PlantDetailModal,
-    PlantEditModal,
     SondeListModal,
 } from "../components/garden";
 
@@ -31,14 +31,14 @@ export default function Dashboard() {
         removePlant,
         updatePlant,
         addSonde,
+        updateSonde,
         removeSonde,
         linkPlantToSonde,
     } = useGardenStorage();
 
-    const [selectedPlant, setSelectedPlant] = useState<PlacedPlant | null>(
-        null,
-    );
-    const [editingPlant, setEditingPlant] = useState<PlacedPlant | null>(null);
+    const sensorData = useSensorData();
+
+    const [selectedPlant, setSelectedPlant] = useState<PlacedPlant | null>(null);
     const [movingId, setMovingId] = useState<string | null>(null);
     const [showCatalog, setShowCatalog] = useState(false);
     const [showAddMenu, setShowAddMenu] = useState(false);
@@ -78,15 +78,15 @@ export default function Dashboard() {
     }, [recenter, plantBounds]);
 
     const handleCatalogSelect = useCallback(
-        (plantType: PlantType, sondeId: string | null) => {
-            addPlant(plantType, sondeId);
+        (plantType: PlantType) => {
+            addPlant(plantType);
         },
         [addPlant],
     );
 
     const handleEditSave = useCallback(
-        (id: string, width: number, height: number, quantity: number) => {
-            updatePlant(id, { width, height, quantity });
+        (id: string, plantType: PlantType, width: number, height: number, quantity: number) => {
+            updatePlant(id, { plantType, width, height, quantity });
         },
         [updatePlant],
     );
@@ -99,16 +99,11 @@ export default function Dashboard() {
         [removePlant],
     );
 
-    const handleDetailEdit = useCallback((plant: PlacedPlant) => {
-        setSelectedPlant(null);
-        setEditingPlant(plant);
-    }, []);
-
     const handleDetailLinkSonde = useCallback(
         (plantId: string, sondeId: string | null) => {
             linkPlantToSonde(plantId, sondeId);
             setSelectedPlant((prev) =>
-                prev?.id === plantId ? { ...prev, sondeId } : prev,
+                prev && prev.id === plantId ? { ...prev, sondeId } : prev,
             );
         },
         [linkPlantToSonde],
@@ -124,14 +119,6 @@ export default function Dashboard() {
             }
         },
         [movingId, plants],
-    );
-
-    const handleCardEdit = useCallback(
-        (id: string) => {
-            const plant = plants.find((p) => p.id === id);
-            if (plant) setEditingPlant(plant);
-        },
-        [plants],
     );
 
     const handleCardDelete = useCallback(
@@ -196,11 +183,11 @@ export default function Dashboard() {
                                     key={plant.id}
                                     plant={plant}
                                     sondes={sondes}
+                                    sensorData={sensorData}
                                     isMoving={movingId === plant.id}
                                     mapScale={scale}
                                     isCardInteracting={isCardInteracting}
                                     onPress={handleCardPress}
-                                    onEdit={handleCardEdit}
                                     onDelete={handleCardDelete}
                                     onToggleMove={handleCardToggleMove}
                                     onMove={handleCardMove}
@@ -255,15 +242,9 @@ export default function Dashboard() {
                     plant={selectedPlant}
                     sondes={sondes}
                     onClose={() => setSelectedPlant(null)}
-                    onEdit={handleDetailEdit}
+                    onSave={handleEditSave}
                     onDelete={handlePlantDelete}
                     onLinkSonde={handleDetailLinkSonde}
-                />
-
-                <PlantEditModal
-                    plant={editingPlant}
-                    onClose={() => setEditingPlant(null)}
-                    onSave={handleEditSave}
                 />
 
                 <SondeListModal
@@ -273,6 +254,7 @@ export default function Dashboard() {
                     onClose={() => setShowSondeList(false)}
                     onAddSonde={addSonde}
                     onRemoveSonde={removeSonde}
+                    onUpdateSonde={updateSonde}
                 />
             </SafeAreaView>
         </GestureHandlerRootView>
