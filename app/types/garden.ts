@@ -10,6 +10,7 @@ export type PlacedSonde = {
     name: string;
     x: number;
     y: number;
+    nodeId?: string;
 };
 
 export type PlacedPlant = {
