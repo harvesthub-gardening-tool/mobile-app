@@ -44,3 +44,4 @@ app-example
 .vscode/
 
 bun.lock
+.env
