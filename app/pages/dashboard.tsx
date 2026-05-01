@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import {
     GestureDetector,
@@ -24,6 +25,7 @@ import {
 } from "../components/garden";
 
 export default function Dashboard() {
+    const router = useRouter();
     const {
         plants,
         sondes,
@@ -169,8 +171,22 @@ export default function Dashboard() {
         <GestureHandlerRootView style={styles.root}>
             <SafeAreaView style={styles.safe} edges={["top"]}>
                 <View style={styles.header}>
-                    <View style={styles.gardenSelector}>
-                        <Text style={styles.gardenName}>Mon jardin</Text>
+                    <View style={styles.headerRow}>
+                        <View style={styles.gardenSelector}>
+                            <Text style={styles.gardenName}>Mon jardin</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.qrBtn}
+                            onPress={() =>
+                                router.push({
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    pathname: "/hub-setup" as any,
+                                    params: { hub_name: "HarvestHub-Dev" },
+                                })
+                            }
+                        >
+                            <Feather name="maximize" size={20} color="#1B1B1B" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -294,7 +310,26 @@ const styles = StyleSheet.create({
         paddingBottom: 18,
         paddingHorizontal: 16,
     },
+    headerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    qrBtn: {
+        width: 46,
+        height: 46,
+        borderRadius: 16,
+        backgroundColor: "#FFF",
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 2,
+    },
     gardenSelector: {
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
