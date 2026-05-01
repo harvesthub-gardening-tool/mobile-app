@@ -43,7 +43,7 @@ export default function Signup() {
         <SafeAreaView style={styles.safe}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>S'inscrire</Text>
+                    <Text style={styles.headerTitle}>S&apos;inscrire</Text>
                 </View>
 
                 <View style={styles.cardWrapper}>
@@ -114,7 +114,7 @@ export default function Signup() {
                                 <ActivityIndicator color="#000" />
                             ) : (
                                 <Text style={styles.primaryButtonText}>
-                                    S'inscrire
+                                    S&apos;inscrire
                                 </Text>
                             )}
                         </TouchableOpacity>

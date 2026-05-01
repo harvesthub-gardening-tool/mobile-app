@@ -3,7 +3,7 @@ import { gardenClient } from "./api";
 import type {
     InsertSensorDataResponse,
     SensorSummary,
-} from "@harvesthub-gardening-tool/protos-typescript/garden/v1/garden_pb";
+} from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
 
 function translateError(err: unknown): string {
     const connectErr = ConnectError.from(err);
@@ -25,9 +25,11 @@ function translateError(err: unknown): string {
 
 export async function insertSensorData(data: {
     nodeId: string;
-    temperature: number;
-    humidity: number;
-    soilMoisture: number;
+    airTemperature: number;
+    airHumidity: number;
+    soilHumidity: number;
+    airPressure: number;
+    soilTemperature: number;
     timestamp: bigint;
 }): Promise<InsertSensorDataResponse> {
     try {
@@ -40,9 +42,10 @@ export async function insertSensorData(data: {
 export async function getSummary(
     nodeId?: string,
     hours?: number,
+    hubId?: string,
 ): Promise<SensorSummary[]> {
     try {
-        const res = await gardenClient.getSummary({ nodeId, hours });
+        const res = await gardenClient.getSummary({ nodeId, hours, hubId });
         return res.summaries;
     } catch (err: unknown) {
         throw new Error(translateError(err));

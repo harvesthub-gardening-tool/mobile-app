@@ -3,7 +3,7 @@ import { authClient, setStoredToken } from "./api";
 import type {
     RegisterResponse,
     LoginResponse,
-} from "@harvesthub-gardening-tool/protos-typescript/auth/v1/auth_pb";
+} from "@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb";
 
 function translateError(err: unknown): string {
     const connectErr = ConnectError.from(err);
