@@ -7,10 +7,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 
 export default function Profile() {
     const { logout } = useAuth();
+    const router = useRouter();
     return (
         <SafeAreaView style={styles.safe}>
             {}
@@ -53,7 +55,11 @@ export default function Profile() {
                 {}
                 <View style={styles.list}>
                     <Row icon="user" label="Mes informations" />
-                    <Row icon="cpu" label="Paramètres des hubs" />
+                    <Row
+                        icon="cpu"
+                        label="Paramètres des hubs"
+                        onPress={() => router.push("/pages/hubs")}
+                    />
                     <Row icon="globe" label="Confidentialité" />
                     <Row icon="headphones" label="Support" />
                 </View>
@@ -70,12 +76,14 @@ export default function Profile() {
 function Row({
     icon,
     label,
+    onPress,
 }: {
     icon: React.ComponentProps<typeof Feather>["name"];
     label: string;
+    onPress?: () => void;
 }) {
     return (
-        <TouchableOpacity activeOpacity={0.85} style={styles.rowCard}>
+        <TouchableOpacity activeOpacity={0.85} style={styles.rowCard} onPress={onPress}>
             <View style={styles.rowLeft}>
                 <View style={styles.rowIcon}>
                     <Feather name={icon} size={18} color="#2B2B2B" />
