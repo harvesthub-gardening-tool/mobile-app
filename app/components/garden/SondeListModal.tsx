@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -5,140 +6,234 @@ import {
     Modal,
     StyleSheet,
     Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { SONDE_TYPES } from "../../constants/garden";
-import type { PlacedSonde, PlacedPlant } from "../../types/garden";
+import type { PlacedPlant, PlacedSonde } from "../../types/garden";
+import { listHubs } from "../../services/authService";
+import { listProbesForHubName, type ProbeSnapshot } from "../../services/gardenService";
+import { colors, withAlpha } from "../../theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type SondeListModalProps = {
     visible: boolean;
-    sondes: PlacedSonde[];
     plants: PlacedPlant[];
+    sondes: PlacedSonde[];
     onClose: () => void;
-    onAddSonde: (type: (typeof SONDE_TYPES)[number]) => void;
-    onRemoveSonde: (id: string) => void;
+    onSelectProbe: (probe: { nodeId: string; hubName: string }) => void;
 };
 
 export function SondeListModal({
     visible,
-    sondes,
     plants,
+    sondes,
     onClose,
-    onAddSonde,
-    onRemoveSonde,
+    onSelectProbe,
 }: SondeListModalProps) {
-    const allAdded = SONDE_TYPES.every((t) =>
-        sondes.some((s) => s.name === t.name),
+    const [hubs, setHubs] = useState<string[]>([]);
+    const [selectedHubName, setSelectedHubName] = useState<string | null>(null);
+    const [availableProbes, setAvailableProbes] = useState<ProbeSnapshot[]>([]);
+    const [loadingProbes, setLoadingProbes] = useState(false);
+    const [probeError, setProbeError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!visible) {
+            return;
+        }
+
+        const loadHubs = async () => {
+            setProbeError(null);
+            try {
+                const data = await listHubs();
+                const names = data
+                    .map((hub) => hub.hubName)
+                    .filter((name) => name.length > 0);
+                setHubs(names);
+                if (names.length > 0) {
+                    setSelectedHubName(names[0]);
+                }
+            } catch (err: unknown) {
+                setProbeError(
+                    err instanceof Error
+                        ? err.message
+                        : "Impossible de charger les hubs.",
+                );
+                setHubs([]);
+                setSelectedHubName(null);
+            }
+        };
+
+        void loadHubs();
+    }, [visible]);
+
+    useEffect(() => {
+        if (!visible || !selectedHubName) {
+            return;
+        }
+        void loadProbes(selectedHubName);
+    }, [visible, selectedHubName]);
+
+    const loadProbes = async (hubName: string) => {
+        setLoadingProbes(true);
+        setProbeError(null);
+        try {
+            const probes = await listProbesForHubName(hubName);
+            const uniqueByNode = new Map<string, ProbeSnapshot>();
+            for (const probe of probes) {
+                uniqueByNode.set(probe.nodeId, probe);
+            }
+            setAvailableProbes(Array.from(uniqueByNode.values()));
+        } catch (err: unknown) {
+            setProbeError(
+                err instanceof Error
+                    ? err.message
+                    : "Impossible de charger les sondes disponibles.",
+            );
+            setAvailableProbes([]);
+        } finally {
+            setLoadingProbes(false);
+        }
+    };
+
+    const handleSelectProbe = (nodeId: string) => {
+        const existing = sondes.find((s) => s.nodeId === nodeId);
+        if (existing) {
+            return;
+        }
+        onSelectProbe({ nodeId, hubName: selectedHubName ?? "Hub" });
+    };
+
+    const sondeNodeIdBySondeId = new Map<string, string>(
+        sondes.map((sonde) => [sonde.id, sonde.nodeId]),
+    );
+
+    const displayedProbeNodeIds = new Set(
+        plants
+            .map((plant) => {
+                if (!plant.sondeId) {
+                    return null;
+                }
+                const nodeIdFromSonde = sondeNodeIdBySondeId.get(plant.sondeId);
+                if (nodeIdFromSonde) {
+                    return nodeIdFromSonde;
+                }
+                const fallbackByNode = sondes.find((s) => s.nodeId === plant.sondeId);
+                return fallbackByNode?.nodeId ?? null;
+            })
+            .filter((nodeId): nodeId is string => typeof nodeId === "string" && nodeId.length > 0),
     );
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
-            <View style={styles.overlay}>
+            <KeyboardAvoidingView
+                style={{ flex: 1, justifyContent: "flex-end" }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
                 <View style={styles.modal}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Mes ressources</Text>
+                        <Text style={styles.title}>Mes sondes</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Feather name="x" size={24} color="#2B2B2B" />
+                            <Feather name="x" size={24} color={colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
 
-                    {sondes.length > 0 && (
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        style={{ maxHeight: SCREEN_HEIGHT * 0.6 }}
+                    >
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>
-                                Ajout\u00e9es
-                            </Text>
-                            {sondes.map((s) => (
-                                <View key={s.id} style={styles.listItem}>
-                                    <View style={styles.listIcon}>
-                                        <Feather
-                                            name="radio"
-                                            size={22}
-                                            color="#1565C0"
-                                        />
-                                    </View>
-                                    <View style={styles.listContent}>
-                                        <Text style={styles.listName}>
-                                            {s.name}
-                                        </Text>
-                                        <Text style={styles.listSub}>
-                                            {
-                                                plants.filter(
-                                                    (p) => p.sondeId === s.id,
-                                                ).length
-                                            }{" "}
-                                            plante(s) li\u00e9e(s)
-                                        </Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        onPress={() => onRemoveSonde(s.id)}
-                                    >
-                                        <Feather
-                                            name="trash-2"
-                                            size={18}
-                                            color="#FF4444"
-                                        />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </View>
-                    )}
+                            <View style={styles.probeHeaderRow}>
+                                <Text style={styles.sectionTitle}>Sondes détectées</Text>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (selectedHubName) {
+                                            void loadProbes(selectedHubName);
+                                        }
+                                    }}
+                                    disabled={!selectedHubName}
+                                >
+                                    <Feather name="refresh-cw" size={16} color={colors.brand.secondary} />
+                                </TouchableOpacity>
+                            </View>
 
-                    <Text style={styles.sectionTitle}>Disponibles</Text>
-                    {SONDE_TYPES.map((type) => {
-                        const alreadyAdded = sondes.some(
-                            (s) => s.name === type.name,
-                        );
-                        if (alreadyAdded) return null;
-                        return (
-                            <TouchableOpacity
-                                key={type.id}
-                                style={styles.listItem}
-                                onPress={() => onAddSonde(type)}
-                            >
-                                <View style={styles.listIcon}>
-                                    <Feather
-                                        name={type.icon}
-                                        size={22}
-                                        color="#1565C0"
-                                    />
-                                </View>
-                                <View style={styles.listContent}>
-                                    <Text style={styles.listName}>
-                                        {type.name}
-                                    </Text>
-                                </View>
-                                <Feather
-                                    name="plus-circle"
-                                    size={22}
-                                    color="#1565C0"
-                                />
-                            </TouchableOpacity>
-                        );
-                    })}
-                    {allAdded && (
-                        <Text style={styles.listSub}>
-                            Toutes les sondes sont ajout\u00e9es
-                        </Text>
-                    )}
+                            {hubs.length > 0 ? (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hubTabs}>
+                                    {hubs.map((hubName) => (
+                                        <TouchableOpacity
+                                            key={hubName}
+                                            style={[
+                                                styles.hubTab,
+                                                selectedHubName === hubName && styles.hubTabActive,
+                                            ]}
+                                            onPress={() => setSelectedHubName(hubName)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.hubTabText,
+                                                    selectedHubName === hubName && styles.hubTabTextActive,
+                                                ]}
+                                            >
+                                                {hubName}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            ) : null}
+
+                            {loadingProbes ? (
+                                <Text style={styles.probeHint}>Chargement des sondes...</Text>
+                            ) : probeError ? (
+                                <Text style={styles.probeError}>{probeError}</Text>
+                            ) : availableProbes.length === 0 ? (
+                                <Text style={styles.probeHint}>
+                                    Aucune sonde trouvée. Lancez un rafraîchissement.
+                                </Text>
+                            ) : (
+                                availableProbes.map((probe) => {
+                                    const alreadyLinked = displayedProbeNodeIds.has(probe.nodeId);
+                                    return (
+                                        <TouchableOpacity
+                                            key={probe.nodeId}
+                                            style={styles.probeItem}
+                                            onPress={() => handleSelectProbe(probe.nodeId)}
+                                            disabled={alreadyLinked}
+                                        >
+                                            <View style={styles.probeItemLeft}>
+                                                <Feather name="radio" size={16} color={colors.brand.secondary} />
+                                                <View>
+                                                    <Text style={styles.probeName}>Sonde disponible</Text>
+                                                    <Text style={styles.probeMeta}>Hub: {selectedHubName ?? "-"}</Text>
+                                                </View>
+                                            </View>
+                                            <Text
+                                                style={[
+                                                    styles.probeAction,
+                                                    alreadyLinked && styles.probeActionDisabled,
+                                                ]}
+                                            >
+                                                {alreadyLinked ? "Déjà ajoutée" : "Ajouter"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })
+                            )}
+                        </View>
+                    </ScrollView>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: "rgba(0,0,0,0.4)",
-        justifyContent: "flex-end",
-    },
     modal: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface.lowest,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        maxHeight: SCREEN_HEIGHT * 0.7,
         padding: 20,
     },
     header: {
@@ -150,47 +245,82 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#1B1B1B",
+        color: colors.text.primary,
     },
     section: {
         marginBottom: 16,
     },
+    probeHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    hubTabs: {
+        marginBottom: 8,
+    },
+    hubTab: {
+        borderRadius: 999,
+        backgroundColor: colors.surface.low,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        marginRight: 8,
+    },
+    hubTabActive: {
+        backgroundColor: colors.brand.secondary,
+    },
+    hubTabText: {
+        fontSize: 12,
+        color: colors.brand.secondary,
+        fontWeight: "600",
+    },
+    hubTabTextActive: {
+        color: colors.text.onPrimary,
+    },
     sectionTitle: {
         fontSize: 13,
         fontWeight: "700",
-        color: "#999",
+        color: colors.text.muted,
         textTransform: "uppercase",
         marginBottom: 8,
         letterSpacing: 0.5,
     },
-    listItem: {
+    probeHint: {
+        fontSize: 12,
+        color: colors.text.muted,
+    },
+    probeError: {
+        fontSize: 12,
+        color: colors.state.danger,
+    },
+    probeItem: {
         flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
-        gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: 4,
+        paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: "#F0F0F0",
+        borderBottomColor: withAlpha(colors.border.subtle, 0.2),
     },
-    listIcon: {
-        width: 44,
-        height: 44,
-        backgroundColor: "#E3F2FD",
-        borderRadius: 14,
-        justifyContent: "center",
+    probeItemLeft: {
+        flexDirection: "row",
+        gap: 8,
         alignItems: "center",
     },
-    listContent: {
-        flex: 1,
-    },
-    listName: {
-        fontSize: 15,
+    probeName: {
+        fontSize: 13,
         fontWeight: "600",
-        color: "#1B1B1B",
+        color: colors.text.primary,
     },
-    listSub: {
+    probeMeta: {
         fontSize: 11,
-        color: "#999",
-        marginTop: 2,
+        color: colors.text.secondary,
+    },
+    probeAction: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: colors.brand.secondary,
+    },
+    probeActionDisabled: {
+        color: colors.text.muted,
     },
 });

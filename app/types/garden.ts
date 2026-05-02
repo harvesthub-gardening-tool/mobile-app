@@ -7,9 +7,10 @@ export type PlantType = {
 
 export type PlacedSonde = {
     id: string;
-    name: string;
     x: number;
     y: number;
+    nodeId: string;
+    hubName: string;
 };
 
 export type PlacedPlant = {

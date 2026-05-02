@@ -16,14 +16,9 @@ export const MAX_SCALE = 3;
 export const DECAY_DECELERATION = 0.997;
 export const MIN_CARD_SIZE = 80;
 
-export const SONDE_TYPES = [
-    { id: "sonde1", name: "Sonde Humidit\u00e9", icon: "droplet" as const },
-    {
-        id: "sonde2",
-        name: "Sonde Temp\u00e9rature",
-        icon: "thermometer" as const,
-    },
-] as const;
+// Nombre max de sondes qu'on peut ajouter
+export const MAX_SONDES = 5;
+export const SONDE_TYPE = { icon: "radio" as const };
 
 export const PLANT_CATALOG: PlantType[] = [
     { id: "t1", name: "Tomate", emoji: "\ud83c\udf45", category: "legume" },

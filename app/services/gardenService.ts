@@ -1,9 +1,9 @@
 import { ConnectError, Code } from "@connectrpc/connect";
-import { gardenClient } from "./api";
+import { API_BASE_URL, gardenClient, getStoredToken } from "./api";
 import type {
     InsertSensorDataResponse,
     SensorSummary,
-} from "@harvesthub-gardening-tool/protos-typescript/garden/v1/garden_pb";
+} from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
 
 function translateError(err: unknown): string {
     const connectErr = ConnectError.from(err);
@@ -25,9 +25,11 @@ function translateError(err: unknown): string {
 
 export async function insertSensorData(data: {
     nodeId: string;
-    temperature: number;
-    humidity: number;
-    soilMoisture: number;
+    airTemperature: number;
+    airHumidity: number;
+    soilHumidity: number;
+    airPressure: number;
+    soilTemperature: number;
     timestamp: bigint;
 }): Promise<InsertSensorDataResponse> {
     try {
@@ -40,11 +42,77 @@ export async function insertSensorData(data: {
 export async function getSummary(
     nodeId?: string,
     hours?: number,
+    hubId?: string,
 ): Promise<SensorSummary[]> {
     try {
-        const res = await gardenClient.getSummary({ nodeId, hours });
+        const res = await gardenClient.getSummary({ nodeId, hours, hubId });
         return res.summaries;
     } catch (err: unknown) {
         throw new Error(translateError(err));
     }
+}
+
+type RawProbe = {
+    nodeId?: string;
+    node_id?: string;
+    airTemperature?: number;
+    air_temperature?: number;
+    airHumidity?: number;
+    air_humidity?: number;
+};
+
+type ListProbesForHubNameResponse = {
+    probes?: RawProbe[];
+};
+
+export type ProbeSnapshot = {
+    nodeId: string;
+    airTemperature?: number;
+    airHumidity?: number;
+};
+
+function readOptionalNumber(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+export async function listProbesForHubName(hubName: string): Promise<ProbeSnapshot[]> {
+    const token = await getStoredToken();
+    if (!token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/garden.v2.GardenService/ListProbesForHubName`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ hubName }),
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error("Impossible de charger les sondes du hub.");
+    }
+
+    const payload = (await response.json()) as ListProbesForHubNameResponse;
+    const snapshots: ProbeSnapshot[] = [];
+    for (const probe of payload.probes ?? []) {
+        const nodeId = probe.nodeId ?? probe.node_id;
+        if (typeof nodeId !== "string" || nodeId.length === 0) {
+            continue;
+        }
+        snapshots.push({
+            nodeId,
+            airTemperature: readOptionalNumber(
+                probe.airTemperature ?? probe.air_temperature,
+            ),
+            airHumidity: readOptionalNumber(
+                probe.airHumidity ?? probe.air_humidity,
+            ),
+        });
+    }
+    return snapshots;
 }

@@ -28,27 +28,24 @@ export function useGardenStorage() {
                 try {
                     const parsed = JSON.parse(data);
                     const migrated = parsed.map((p: Record<string, unknown>) => {
-                        if (
-                            p.width === undefined ||
-                            p.height === undefined ||
-                            typeof p.width !== "number" ||
-                            typeof p.height !== "number"
-                        ) {
-                            const s =
-                                typeof p.size === "number"
-                                    ? Math.max(MIN_CARD_SIZE, p.size)
-                                    : DEFAULT_CELL;
-                            const { size: _removed, ...rest } = p;
-                            return { ...rest, width: s, height: s };
+                        let base: Record<string, unknown> = { ...p };
+                        // Migration width/height depuis size
+                        if (typeof base.width !== "number" || typeof base.height !== "number") {
+                            const s = typeof base.size === "number" ? Math.max(MIN_CARD_SIZE, base.size) : DEFAULT_CELL;
+                            delete base.size;
+                            base = { ...base, width: s, height: s };
                         }
-                        return p;
+                        // Migration sondeIds → sondeId
+                        if (Array.isArray(base.sondeIds)) {
+                            base.sondeId = (base.sondeIds as string[])[0] ?? null;
+                            delete base.sondeIds;
+                        }
+                        if (!("sondeId" in base)) base.sondeId = null;
+                        return base;
                     });
                     setPlants(migrated as PlacedPlant[]);
                     if (JSON.stringify(migrated) !== data) {
-                        AsyncStorage.setItem(
-                            userKey,
-                            JSON.stringify(migrated),
-                        );
+                        AsyncStorage.setItem(userKey, JSON.stringify(migrated));
                     }
                 } catch {
                     setPlants([]);
@@ -60,10 +57,27 @@ export function useGardenStorage() {
         AsyncStorage.getItem(sondeKey).then((data) => {
             if (data) {
                 try {
-                    setSondes(JSON.parse(data));
-                } catch {
-                    setSondes([]);
-                }
+                    const parsed = JSON.parse(data);
+                    const migrated = parsed
+                        .map((s: Record<string, unknown>) => ({
+                            ...s,
+                            nodeId:
+                                typeof s.nodeId === "string"
+                                    ? s.nodeId
+                                    : "",
+                            hubName:
+                                typeof s.hubName === "string" && s.hubName.trim().length > 0
+                                    ? s.hubName
+                                    : "Hub",
+                        }))
+                        .filter((s: Record<string, unknown>) =>
+                            typeof s.nodeId === "string" && s.nodeId.length > 0,
+                        );
+                    setSondes(migrated);
+                    if (JSON.stringify(migrated) !== data) {
+                        AsyncStorage.setItem(sondeKey, JSON.stringify(migrated));
+                    }
+                } catch { setSondes([]); }
             } else {
                 setSondes([]);
             }
@@ -87,9 +101,9 @@ export function useGardenStorage() {
     );
 
     const addPlant = useCallback(
-        (plantType: PlantType, sondeId: string | null) => {
+        (plantType: PlantType) => {
             const pos = findFreePosition(plants);
-            const newPlant: PlacedPlant = {
+            const created: PlacedPlant = {
                 id: `placed_${++plantIdCounter}`,
                 plantType,
                 x: pos.x,
@@ -97,70 +111,97 @@ export function useGardenStorage() {
                 width: DEFAULT_CELL,
                 height: DEFAULT_CELL,
                 quantity: 1,
+                sondeId: null,
+            };
+            savePlants([...plants, created]);
+            return created;
+        },
+        [plants, savePlants],
+    );
+
+    const addPlantForSonde = useCallback(
+        (plantType: PlantType, sondeId: string, position?: { x: number; y: number }) => {
+            const created: PlacedPlant = {
+                id: `placed_${++plantIdCounter}`,
+                plantType,
+                x: position?.x ?? MAP_SIZE / 2 - DEFAULT_CELL / 2,
+                y: position?.y ?? MAP_SIZE / 2 - DEFAULT_CELL / 2,
+                width: DEFAULT_CELL,
+                height: DEFAULT_CELL,
+                quantity: 1,
                 sondeId,
             };
-            savePlants([...plants, newPlant]);
+            savePlants([...plants, created]);
+            return created;
         },
         [plants, savePlants],
     );
 
     const removePlant = useCallback(
         (id: string) => {
-            savePlants(plants.filter((p) => p.id !== id));
+            const target = plants.find((p) => p.id === id);
+            const remainingPlants = plants.filter((p) => p.id !== id);
+            savePlants(remainingPlants);
+
+            if (!target?.sondeId) {
+                return;
+            }
+
+            const stillUsed = remainingPlants.some(
+                (p) => p.sondeId === target.sondeId,
+            );
+            if (!stillUsed) {
+                saveSondes(sondes.filter((s) => s.id !== target.sondeId));
+            }
         },
-        [plants, savePlants],
+        [plants, savePlants, saveSondes, sondes],
     );
 
     const updatePlant = useCallback(
-        (
-            id: string,
-            updates: Partial<
-                Pick<PlacedPlant, "x" | "y" | "width" | "height" | "quantity" | "sondeId">
-            >,
-        ) => {
-            savePlants(
-                plants.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-            );
+        (id: string, updates: Partial<Pick<PlacedPlant, "x" | "y" | "width" | "height" | "quantity" | "sondeId" | "plantType">>) => {
+            savePlants(plants.map((p) => (p.id === id ? { ...p, ...updates } : p)));
         },
         [plants, savePlants],
     );
 
-    const addSonde = useCallback(
-        (type: { id: string; name: string }) => {
-            const alreadyExists = sondes.some((s) => s.name === type.name);
-            if (alreadyExists) return;
-            const startX = MAP_SIZE / 2;
-            const startY = MAP_SIZE / 2 + sondes.length * 80;
-            saveSondes([
-                ...sondes,
-                {
-                    id: `sonde_${Date.now()}`,
-                    name: type.name,
-                    x: startX,
-                    y: startY,
-                },
-            ]);
-        },
-        [sondes, saveSondes],
-    );
+    const addSonde = useCallback((options?: { nodeId?: string; hubName?: string }) => {
+        const nextNodeId = options?.nodeId?.trim() ?? "";
+        if (!nextNodeId) {
+            return null;
+        }
+        const existing = sondes.find((s) => s.nodeId === nextNodeId);
+        if (existing) {
+            return existing;
+        }
+        const created: PlacedSonde = {
+            id: `sonde_${Date.now()}`,
+            x: MAP_SIZE / 2,
+            y: MAP_SIZE / 2 + sondes.length * 80,
+            nodeId: nextNodeId,
+            hubName: options?.hubName?.trim() || "Hub",
+        };
+        saveSondes([...sondes, created]);
+        return created;
+    }, [sondes, saveSondes]);
 
     const removeSonde = useCallback(
         (id: string) => {
-            savePlants(
-                plants.map((p) =>
-                    p.sondeId === id ? { ...p, sondeId: null } : p,
-                ),
-            );
+            savePlants(plants.map((p) => p.sondeId === id ? { ...p, sondeId: null } : p));
             saveSondes(sondes.filter((s) => s.id !== id));
         },
         [plants, sondes, savePlants, saveSondes],
     );
 
+    const updateSonde = useCallback(
+        (_id: string, _updates: Partial<Pick<PlacedSonde, "nodeId">>) => {
+            // Sondes are managed from backend probe inventory only.
+        },
+        [],
+    );
+
     const linkPlantToSonde = useCallback(
         (plantId: string, sondeId: string | null) => {
-            savePlants(
-                plants.map((p) => (p.id === plantId ? { ...p, sondeId } : p)),
-            );
+            savePlants(plants.map((p) => (p.id === plantId ? { ...p, sondeId } : p)));
         },
         [plants, savePlants],
     );
@@ -169,9 +210,11 @@ export function useGardenStorage() {
         plants,
         sondes,
         addPlant,
+        addPlantForSonde,
         removePlant,
         updatePlant,
         addSonde,
+        updateSonde,
         removeSonde,
         linkPlantToSonde,
     };
@@ -185,11 +228,7 @@ function findFreePosition(plants: PlacedPlant[]): { x: number; y: number } {
             const x = startX + col * (DEFAULT_CELL + CELL_GAP);
             const y = startY + row * (DEFAULT_CELL + CELL_GAP);
             const occupied = plants.some(
-                (p) =>
-                    x < p.x + p.width &&
-                    x + DEFAULT_CELL > p.x &&
-                    y < p.y + p.height &&
-                    y + DEFAULT_CELL > p.y,
+                (p) => x < p.x + p.width && x + DEFAULT_CELL > p.x && y < p.y + p.height && y + DEFAULT_CELL > p.y,
             );
             if (!occupied) return { x, y };
         }

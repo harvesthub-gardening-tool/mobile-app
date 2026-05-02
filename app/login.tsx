@@ -7,10 +7,13 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useAuth } from "./context/AuthContext";
+import { colors, withAlpha } from "./theme";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -39,6 +42,10 @@ export default function Login() {
 
     return (
         <SafeAreaView style={styles.safe}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
             <View style={styles.container}>
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Se connecter</Text>
@@ -46,6 +53,7 @@ export default function Login() {
 
                 <View style={styles.cardWrapper}>
                     <ScrollView
+                        keyboardShouldPersistTaps="handled"
                         contentContainerStyle={styles.card}
                         showsVerticalScrollIndicator={false}
                     >
@@ -99,7 +107,7 @@ export default function Login() {
                             disabled={loading}
                         >
                             {loading ? (
-                                <ActivityIndicator color="#000" />
+                                <ActivityIndicator color={colors.text.onPrimary} />
                             ) : (
                                 <Text style={styles.primaryButtonText}>
                                     Se connecter
@@ -117,6 +125,7 @@ export default function Login() {
                     </ScrollView>
                 </View>
             </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -124,21 +133,22 @@ export default function Login() {
 const styles = StyleSheet.create({
     safe: {
         flex: 1,
-        backgroundColor: "#F5F5F5",
+        backgroundColor: colors.surface.base,
     },
     container: {
         flex: 1,
-        backgroundColor: "#F5F5F5",
+        backgroundColor: colors.surface.base,
     },
     header: {
         height: 180,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
         justifyContent: "center",
         alignItems: "center",
     },
     headerTitle: {
         fontSize: 26,
         fontWeight: "700",
+        color: colors.text.onPrimary,
     },
 
     cardWrapper: {
@@ -147,7 +157,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     card: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.surface.lowest,
         borderRadius: 24,
         padding: 20,
         paddingBottom: 32,
@@ -155,11 +165,12 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 20,
         fontWeight: "700",
+        color: colors.text.primary,
         marginBottom: 8,
     },
     cardSubtitle: {
         fontSize: 13,
-        color: "#666",
+        color: colors.text.secondary,
         marginBottom: 24,
         lineHeight: 18,
     },
@@ -170,26 +181,28 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 13,
         marginBottom: 6,
-        color: "#555",
+        color: colors.text.secondary,
     },
     input: {
         borderWidth: 1,
-        borderColor: "#DADADA",
-        borderRadius: 8,
+        borderColor: withAlpha(colors.border.subtle, 0.42),
+        borderRadius: 16,
         paddingHorizontal: 10,
         paddingVertical: 10,
         fontSize: 14,
+        color: colors.text.primary,
+        backgroundColor: colors.surface.low,
     },
 
     forgotPassword: {
         fontSize: 11,
-        color: "#6E6E6E",
+        color: colors.text.secondary,
         textDecorationLine: "underline",
         marginBottom: 26,
     },
 
     primaryButton: {
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
         borderRadius: 999,
         paddingVertical: 14,
         alignItems: "center",
@@ -201,21 +214,23 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         fontSize: 15,
         fontWeight: "600",
+        color: colors.text.onPrimary,
     },
 
     secondaryButton: {
         borderWidth: 1,
-        borderColor: "#63FFA4",
+        borderColor: withAlpha(colors.border.subtle, 0.35),
         borderRadius: 999,
         paddingVertical: 12,
         alignItems: "center",
+        backgroundColor: colors.surface.low,
     },
     secondaryButtonText: {
         fontSize: 13,
-        color: "#000000",
+        color: colors.text.secondary,
     },
     errorText: {
-        color: "#FF4444",
+        color: colors.state.danger,
         fontSize: 13,
         textAlign: "center",
         marginBottom: 14,

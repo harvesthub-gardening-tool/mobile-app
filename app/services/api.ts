@@ -1,8 +1,8 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import * as SecureStore from "expo-secure-store";
-import { AuthService } from "@harvesthub-gardening-tool/protos-typescript/auth/v1/auth_pb";
-import { GardenService } from "@harvesthub-gardening-tool/protos-typescript/garden/v1/garden_pb";
+import { AuthService } from "@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb";
+import { GardenService } from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
 import { API_BASE_URL } from "../config";
 
 export { API_BASE_URL };

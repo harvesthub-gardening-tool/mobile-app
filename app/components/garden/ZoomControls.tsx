@@ -1,5 +1,6 @@
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { colors, withAlpha } from "../../theme";
 
 type ZoomControlsProps = {
     onZoomIn: () => void;
@@ -15,13 +16,13 @@ export function ZoomControls({
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.btn} onPress={onZoomIn}>
-                <Feather name="plus" size={18} color="#333" />
+                <Feather name="plus" size={18} color={colors.text.secondary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.btn} onPress={onZoomOut}>
-                <Feather name="minus" size={18} color="#333" />
+                <Feather name="minus" size={18} color={colors.text.secondary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.btn} onPress={onRecenter}>
-                <Feather name="crosshair" size={18} color="#333" />
+                <Feather name="crosshair" size={18} color={colors.text.secondary} />
             </TouchableOpacity>
         </View>
     );
@@ -37,14 +38,16 @@ const styles = StyleSheet.create({
     btn: {
         width: 36,
         height: 36,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface.glass,
         borderRadius: 18,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: colors.overlay.shadow,
         shadowOpacity: 0.1,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
         elevation: 2,
+        borderWidth: 1,
+        borderColor: withAlpha(colors.border.subtle, 0.2),
     },
 });

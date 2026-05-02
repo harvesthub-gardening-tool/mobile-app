@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { DEFAULT_CELL, MIN_CARD_SIZE } from "../../constants/garden";
 import type { PlacedPlant } from "../../types/garden";
+import { colors, withAlpha } from "../../theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -130,12 +131,12 @@ export function PlantEditModal({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.4)",
+        backgroundColor: colors.overlay.backdrop,
         justifyContent: "center",
         alignItems: "center",
     },
     modal: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface.lowest,
         borderRadius: 24,
         width: SCREEN_WIDTH - 40,
         padding: 24,
@@ -143,12 +144,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#1B1B1B",
+        color: colors.text.primary,
         marginBottom: 2,
     },
     subtitle: {
         fontSize: 14,
-        color: "#999",
+        color: colors.text.muted,
         marginBottom: 18,
     },
     row: {
@@ -160,34 +161,35 @@ const styles = StyleSheet.create({
     },
     fieldLabel: {
         fontSize: 12,
-        color: "#999",
+        color: colors.text.muted,
         marginBottom: 6,
     },
     input: {
         borderWidth: 1,
-        borderColor: "#DDD",
-        borderRadius: 12,
+        borderColor: withAlpha(colors.border.subtle, 0.4),
+        borderRadius: 16,
         height: 46,
         paddingHorizontal: 14,
         fontSize: 16,
-        color: "#1B1B1B",
+        color: colors.text.primary,
+        backgroundColor: colors.surface.low,
     },
     error: {
-        color: "#FF4444",
+        color: colors.state.danger,
         fontSize: 13,
         marginTop: 8,
         textAlign: "center",
     },
     saveBtn: {
-        backgroundColor: "#2E7D32",
-        borderRadius: 14,
+        backgroundColor: colors.brand.primary,
+        borderRadius: 24,
         height: 48,
         justifyContent: "center",
         alignItems: "center",
         marginTop: 18,
     },
     saveBtnText: {
-        color: "#FFF",
+        color: colors.text.onPrimary,
         fontSize: 15,
         fontWeight: "700",
     },

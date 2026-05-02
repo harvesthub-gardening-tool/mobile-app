@@ -15,7 +15,7 @@
     "@connectrpc/connect": "^2.1.1",
     "@connectrpc/connect-web": "^2.1.1",
     "@expo/vector-icons": "^15.0.3",
-    "@harvesthub-gardening-tool/protos-typescript": "github:harvesthub-gardening-tool/protos-typescript",
+    "@harvesthub-gardening-tool/protos-typescript": "github:harvesthub-gardening-tool/protos-typescript#2879268d84edae175ee7d88f0aabd3a5be1660f0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
