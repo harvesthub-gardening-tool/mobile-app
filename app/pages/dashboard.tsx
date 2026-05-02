@@ -11,7 +11,7 @@ import Animated from "react-native-reanimated";
 import { useGardenStorage } from "../hooks/useGardenStorage";
 import { useMapGestures } from "../hooks/useMapGestures";
 import { useSensorData } from "../hooks/useSensorData";
-import { MAP_SIZE, MIN_CARD_SIZE } from "../constants/garden";
+import { MAP_SIZE, MIN_CARD_SIZE, PLANT_CATALOG } from "../constants/garden";
 import type { PlacedPlant, PlantType } from "../types/garden";
 import {
     GrassLayer,
@@ -28,11 +28,10 @@ export default function Dashboard() {
         plants,
         sondes,
         addPlant,
+        addPlantForSonde,
         removePlant,
         updatePlant,
         addSonde,
-        updateSonde,
-        removeSonde,
         linkPlantToSonde,
     } = useGardenStorage();
 
@@ -41,7 +40,6 @@ export default function Dashboard() {
     const [selectedPlant, setSelectedPlant] = useState<PlacedPlant | null>(null);
     const [movingId, setMovingId] = useState<string | null>(null);
     const [showCatalog, setShowCatalog] = useState(false);
-    const [showAddMenu, setShowAddMenu] = useState(false);
     const [showSondeList, setShowSondeList] = useState(false);
 
     const handleMapTap = useCallback(() => {
@@ -152,6 +150,19 @@ export default function Dashboard() {
         [updatePlant],
     );
 
+    const handleSelectProbe = useCallback(
+        (probe: { nodeId: string; hubName: string }) => {
+            const sonde = addSonde({ nodeId: probe.nodeId, hubName: probe.hubName });
+            if (!sonde) {
+                return;
+            }
+            const createdPlant = addPlantForSonde(PLANT_CATALOG[0], sonde.id);
+            setMovingId(createdPlant.id);
+            setShowSondeList(false);
+        },
+        [addPlantForSonde, addSonde],
+    );
+
     return (
         <GestureHandlerRootView style={styles.root}>
             <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -217,16 +228,7 @@ export default function Dashboard() {
                         />
 
                         <AddMenu
-                            visible={showAddMenu}
-                            onToggle={() => setShowAddMenu(!showAddMenu)}
-                            onAddPlant={() => {
-                                setShowAddMenu(false);
-                                setShowCatalog(true);
-                            }}
-                            onAddSonde={() => {
-                                setShowAddMenu(false);
-                                setShowSondeList(true);
-                            }}
+                            onPress={() => setShowSondeList(true)}
                         />
                     </Animated.View>
                 </GestureDetector>
@@ -250,11 +252,8 @@ export default function Dashboard() {
                 <SondeListModal
                     visible={showSondeList}
                     sondes={sondes}
-                    plants={plants}
                     onClose={() => setShowSondeList(false)}
-                    onAddSonde={addSonde}
-                    onRemoveSonde={removeSonde}
-                    onUpdateSonde={updateSonde}
+                    onSelectProbe={handleSelectProbe}
                 />
             </SafeAreaView>
         </GestureHandlerRootView>

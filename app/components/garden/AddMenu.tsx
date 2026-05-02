@@ -1,73 +1,21 @@
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 type AddMenuProps = {
-    visible: boolean;
-    onToggle: () => void;
-    onAddPlant: () => void;
-    onAddSonde: () => void;
+    onPress: () => void;
 };
 
 export function AddMenu({
-    visible,
-    onToggle,
-    onAddPlant,
-    onAddSonde,
+    onPress,
 }: AddMenuProps) {
     return (
-        <>
-            {visible && (
-                <View style={styles.menu}>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={onAddPlant}
-                    >
-                        <Feather name="feather" size={20} color="#2E7D32" />
-                        <Text style={styles.menuText}>Plante</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={onAddSonde}
-                    >
-                        <Feather name="radio" size={20} color="#1565C0" />
-                        <Text style={styles.menuText}>Ressource</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            <TouchableOpacity style={styles.fab} onPress={onToggle}>
-                <Feather name="plus" size={26} color="#FFF" />
-            </TouchableOpacity>
-        </>
+        <TouchableOpacity style={styles.fab} onPress={onPress}>
+            <Feather name="plus" size={26} color="#FFF" />
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
-    menu: {
-        position: "absolute",
-        right: 14,
-        bottom: 190,
-        gap: 8,
-    },
-    menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        backgroundColor: "#FFF",
-        borderRadius: 14,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.12,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 3,
-    },
-    menuText: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#1B1B1B",
-    },
     fab: {
         position: "absolute",
         right: 14,
