@@ -8,6 +8,7 @@ import Animated, {
     withSpring,
     withTiming,
 } from "react-native-reanimated";
+import { colors, withAlpha } from "../theme";
 
 type MenuItem = {
     href: MenuHref;
@@ -41,8 +42,8 @@ const CONTAINER_HEIGHT = 68;
 const CONTAINER_WIDTH = SCREEN_WIDTH - CONTAINER_HORIZONTAL_INSET * 2;
 const TAB_WIDTH = CONTAINER_WIDTH / MENU.length;
 const INDICATOR_SIZE = 48;
-const ACTIVE_COLOR = "#1B1B1B";
-const INACTIVE_COLOR = "#B5B5B5";
+const ACTIVE_COLOR = colors.text.onPrimary;
+const INACTIVE_COLOR = colors.text.secondary;
 
 type MenuIconProps = {
     item: MenuItem;
@@ -176,9 +177,9 @@ const styles = StyleSheet.create({
         height: CONTAINER_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.92)",
+        backgroundColor: colors.surface.glass,
         borderRadius: 22,
-        shadowColor: "#000",
+        shadowColor: colors.overlay.shadow,
         shadowOffset: {
             width: 0,
             height: 12,
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16.0,
         elevation: 8,
         borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.7)",
+        borderColor: withAlpha(colors.border.subtle, 0.35),
     },
     activeIndicator: {
         position: "absolute",
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
         width: INDICATOR_SIZE,
         height: INDICATOR_SIZE,
         borderRadius: 16,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
     },
     item: {
         flex: 1,

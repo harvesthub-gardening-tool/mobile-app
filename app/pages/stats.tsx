@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors, withAlpha } from "../theme";
 
 type DayItem = {
     day: string;
@@ -154,11 +155,11 @@ export default function Stats() {
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: "#F5F5F5" },
+    safe: { flex: 1, backgroundColor: colors.surface.base },
 
     header: {
         height: 220,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
         paddingTop: 14,
         paddingHorizontal: 20,
     },
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
         fontSize: 20,
         fontWeight: "500",
-        color: "#2B2B2B",
+        color: colors.text.onPrimary,
     },
 
     daysRow: {
@@ -177,33 +178,33 @@ const styles = StyleSheet.create({
     dayCard: {
         width: 78,
         height: 78,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
+        backgroundColor: colors.surface.lowest,
+        borderRadius: 24,
         justifyContent: "center",
         alignItems: "center",
 
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowColor: colors.overlay.shadow,
+        shadowOpacity: 1,
+        shadowRadius: 40,
+        shadowOffset: { width: 0, height: 12 },
         elevation: 2,
     },
     dayNumber: {
         fontSize: 16,
         fontWeight: "500",
-        color: "#2B2B2B",
+        color: colors.text.secondary,
     },
     dayLabel: {
         marginTop: 4,
         fontSize: 11,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.6,
     },
 
     body: {
         flex: 1,
         marginTop: -30,
-        backgroundColor: "#F5F5F5",
+        backgroundColor: colors.surface.base,
         paddingHorizontal: 20,
     },
     bodyContent: {
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: "500",
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         marginBottom: 12,
     },
     sectionSpacing: {
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
         width: 92,
         height: 92,
         borderRadius: 999,
-        backgroundColor: "#E9E9E9",
+        backgroundColor: colors.surface.low,
         overflow: "hidden",
     },
     pieSlice: {
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
         top: 0,
         width: 46,
         height: 92,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
     },
     pieLabels: {
         position: "absolute",
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
         left: -6,
         top: 34,
         fontSize: 10,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.55,
         textAlign: "right",
         lineHeight: 12,
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
         left: 104,
         top: 18,
         fontSize: 10,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.55,
         lineHeight: 12,
     },
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
         left: 96,
         top: 88,
         fontSize: 10,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.55,
         lineHeight: 12,
     },
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     },
     gridLine: {
         height: 1,
-        backgroundColor: "#E3E3E3",
+        backgroundColor: withAlpha(colors.border.subtle, 0.35),
     },
 
     barsRow: {
@@ -320,12 +321,12 @@ const styles = StyleSheet.create({
     barDark: {
         width: 46,
         borderRadius: 2,
-        backgroundColor: "#4A4F55",
+        backgroundColor: colors.text.secondary,
     },
     barGreen: {
         width: 46,
         borderRadius: 2,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
     },
     xLabels: {
         position: "absolute",
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
     },
     xLabel: {
         fontSize: 10,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.55,
     },
     yLabels: {
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
     },
     yLabel: {
         fontSize: 9,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.55,
         lineHeight: 10,
     },
@@ -363,20 +364,20 @@ const styles = StyleSheet.create({
     probePill: {
         flex: 1,
         height: 38,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12,
+        backgroundColor: colors.surface.lowest,
+        borderRadius: 24,
         justifyContent: "center",
         paddingHorizontal: 14,
 
-        shadowColor: "#000",
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowColor: colors.overlay.shadow,
+        shadowOpacity: 1,
+        shadowRadius: 40,
+        shadowOffset: { width: 0, height: 12 },
         elevation: 2,
     },
     probeText: {
         fontSize: 11,
-        color: "#2B2B2B",
+        color: colors.text.secondary,
         opacity: 0.7,
         fontWeight: "500",
     },

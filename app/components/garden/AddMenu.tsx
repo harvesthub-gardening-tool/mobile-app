@@ -1,87 +1,38 @@
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { colors, withAlpha } from "../../theme";
 
 type AddMenuProps = {
-    visible: boolean;
-    onToggle: () => void;
-    onAddPlant: () => void;
-    onAddSonde: () => void;
+    onPress: () => void;
 };
 
 export function AddMenu({
-    visible,
-    onToggle,
-    onAddPlant,
-    onAddSonde,
+    onPress,
 }: AddMenuProps) {
     return (
-        <>
-            {visible && (
-                <View style={styles.menu}>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={onAddPlant}
-                    >
-                        <Feather name="feather" size={20} color="#2E7D32" />
-                        <Text style={styles.menuText}>Plante</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={onAddSonde}
-                    >
-                        <Feather name="radio" size={20} color="#1565C0" />
-                        <Text style={styles.menuText}>Ressource</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            <TouchableOpacity style={styles.fab} onPress={onToggle}>
-                <Feather name="plus" size={26} color="#FFF" />
-            </TouchableOpacity>
-        </>
+        <TouchableOpacity style={styles.fab} onPress={onPress}>
+            <Feather name="plus" size={26} color={colors.text.onPrimary} />
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
-    menu: {
-        position: "absolute",
-        right: 14,
-        bottom: 190,
-        gap: 8,
-    },
-    menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        backgroundColor: "#FFF",
-        borderRadius: 14,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.12,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 3,
-    },
-    menuText: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#1B1B1B",
-    },
     fab: {
         position: "absolute",
         right: 14,
         bottom: 120,
         width: 54,
         height: 54,
-        backgroundColor: "#2E7D32",
+        backgroundColor: colors.brand.primary,
         borderRadius: 27,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: colors.overlay.shadow,
         shadowOpacity: 0.2,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
         elevation: 4,
+        borderWidth: 1,
+        borderColor: withAlpha(colors.border.subtle, 0.2),
     },
 });

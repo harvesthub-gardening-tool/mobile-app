@@ -3,6 +3,7 @@ import { authClient, setStoredToken } from "./api";
 import type {
     RegisterResponse,
     LoginResponse,
+    HubInfo,
 } from "@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb";
 
 function translateError(err: unknown): string {
@@ -49,6 +50,15 @@ export async function login(
         const res = await authClient.login({ email, password });
         await setStoredToken(res.token);
         return res;
+    } catch (err: unknown) {
+        throw new Error(translateError(err));
+    }
+}
+
+export async function listHubs(): Promise<HubInfo[]> {
+    try {
+        const res = await authClient.listHubs({});
+        return res.hubs;
     } catch (err: unknown) {
         throw new Error(translateError(err));
     }
