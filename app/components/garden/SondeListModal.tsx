@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import type { PlacedSonde } from "../../types/garden";
 import { listHubs } from "../../services/authService";
 import { listProbesForHubName, type ProbeSnapshot } from "../../services/gardenService";
+import { colors, withAlpha } from "../../theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -119,7 +120,7 @@ export function SondeListModal({
                     <View style={styles.header}>
                         <Text style={styles.title}>Mes sondes</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Feather name="x" size={24} color="#2B2B2B" />
+                            <Feather name="x" size={24} color={colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
 
@@ -139,7 +140,7 @@ export function SondeListModal({
                                     }}
                                     disabled={!selectedHubName}
                                 >
-                                    <Feather name="refresh-cw" size={16} color="#1565C0" />
+                                    <Feather name="refresh-cw" size={16} color={colors.brand.secondary} />
                                 </TouchableOpacity>
                             </View>
 
@@ -186,7 +187,7 @@ export function SondeListModal({
                                             disabled={alreadyLinked}
                                         >
                                             <View style={styles.probeItemLeft}>
-                                                <Feather name="radio" size={16} color="#1565C0" />
+                                                <Feather name="radio" size={16} color={colors.brand.secondary} />
                                                 <View>
                                                     <Text style={styles.probeName}>Sonde disponible</Text>
                                                     <Text style={styles.probeMeta}>Hub: {selectedHubName ?? "-"}</Text>
@@ -214,7 +215,7 @@ export function SondeListModal({
 
 const styles = StyleSheet.create({
     modal: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface.lowest,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 20,
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#1B1B1B",
+        color: colors.text.primary,
     },
     section: {
         marginBottom: 16,
@@ -244,37 +245,37 @@ const styles = StyleSheet.create({
     },
     hubTab: {
         borderRadius: 999,
-        backgroundColor: "#EEF2F7",
+        backgroundColor: colors.surface.low,
         paddingHorizontal: 10,
         paddingVertical: 6,
         marginRight: 8,
     },
     hubTabActive: {
-        backgroundColor: "#1565C0",
+        backgroundColor: colors.brand.secondary,
     },
     hubTabText: {
         fontSize: 12,
-        color: "#1565C0",
+        color: colors.brand.secondary,
         fontWeight: "600",
     },
     hubTabTextActive: {
-        color: "#FFF",
+        color: colors.text.onPrimary,
     },
     sectionTitle: {
         fontSize: 13,
         fontWeight: "700",
-        color: "#999",
+        color: colors.text.muted,
         textTransform: "uppercase",
         marginBottom: 8,
         letterSpacing: 0.5,
     },
     probeHint: {
         fontSize: 12,
-        color: "#999",
+        color: colors.text.muted,
     },
     probeError: {
         fontSize: 12,
-        color: "#D32F2F",
+        color: colors.state.danger,
     },
     probeItem: {
         flexDirection: "row",
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: "#F0F0F0",
+        borderBottomColor: withAlpha(colors.border.subtle, 0.2),
     },
     probeItemLeft: {
         flexDirection: "row",
@@ -292,18 +293,18 @@ const styles = StyleSheet.create({
     probeName: {
         fontSize: 13,
         fontWeight: "600",
-        color: "#1B1B1B",
+        color: colors.text.primary,
     },
     probeMeta: {
         fontSize: 11,
-        color: "#777",
+        color: colors.text.secondary,
     },
     probeAction: {
         fontSize: 12,
         fontWeight: "700",
-        color: "#1565C0",
+        color: colors.brand.secondary,
     },
     probeActionDisabled: {
-        color: "#999",
+        color: colors.text.muted,
     },
 });

@@ -120,12 +120,12 @@ export function useGardenStorage() {
     );
 
     const addPlantForSonde = useCallback(
-        (plantType: PlantType, sondeId: string) => {
+        (plantType: PlantType, sondeId: string, position?: { x: number; y: number }) => {
             const created: PlacedPlant = {
                 id: `placed_${++plantIdCounter}`,
                 plantType,
-                x: MAP_SIZE / 2 - DEFAULT_CELL / 2,
-                y: MAP_SIZE / 2 - DEFAULT_CELL / 2,
+                x: position?.x ?? MAP_SIZE / 2 - DEFAULT_CELL / 2,
+                y: position?.y ?? MAP_SIZE / 2 - DEFAULT_CELL / 2,
                 width: DEFAULT_CELL,
                 height: DEFAULT_CELL,
                 quantity: 1,
