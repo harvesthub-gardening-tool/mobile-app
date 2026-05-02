@@ -7,6 +7,8 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
@@ -39,6 +41,10 @@ export default function Login() {
 
     return (
         <SafeAreaView style={styles.safe}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
             <View style={styles.container}>
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Se connecter</Text>
@@ -46,6 +52,7 @@ export default function Login() {
 
                 <View style={styles.cardWrapper}>
                     <ScrollView
+                        keyboardShouldPersistTaps="handled"
                         contentContainerStyle={styles.card}
                         showsVerticalScrollIndicator={false}
                     >
@@ -117,6 +124,7 @@ export default function Login() {
                     </ScrollView>
                 </View>
             </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

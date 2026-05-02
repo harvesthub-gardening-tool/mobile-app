@@ -19,41 +19,28 @@ type CatalogModalProps = {
     visible: boolean;
     sondes: PlacedSonde[];
     onClose: () => void;
-    onSelectPlant: (plantType: PlantType, sondeId: string | null) => void;
+    onSelectPlant: (plantType: PlantType) => void;
 };
 
 export function CatalogModal({
     visible,
-    sondes,
+    sondes: _sondes,
     onClose,
     onSelectPlant,
 }: CatalogModalProps) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [pendingPlant, setPendingPlant] = useState<PlantType | null>(null);
 
     const filteredCatalog = PLANT_CATALOG.filter((p) =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
     const handleSelect = (plantType: PlantType) => {
-        if (sondes.length > 0) {
-            setPendingPlant(plantType);
-        } else {
-            onSelectPlant(plantType, null);
-            handleClose();
-        }
-    };
-
-    const handleSelectWithSonde = (sondeId: string | null) => {
-        if (!pendingPlant) return;
-        onSelectPlant(pendingPlant, sondeId);
-        setPendingPlant(null);
+        onSelectPlant(plantType);
         handleClose();
     };
 
     const handleClose = () => {
         setSearchQuery("");
-        setPendingPlant(null);
         onClose();
     };
 
@@ -100,51 +87,6 @@ export function CatalogModal({
                         )}
                     />
 
-                    {pendingPlant && (
-                        <View style={styles.sondePickerOverlay}>
-                            <View style={styles.sondePickerCard}>
-                                <Text style={styles.sondePickerTitle}>
-                                    {pendingPlant.emoji} Lier \u00e0 une sonde ?
-                                </Text>
-                                {sondes.map((s) => (
-                                    <TouchableOpacity
-                                        key={s.id}
-                                        style={styles.sondePickerItem}
-                                        onPress={() =>
-                                            handleSelectWithSonde(s.id)
-                                        }
-                                    >
-                                        <Feather
-                                            name="radio"
-                                            size={16}
-                                            color="#1565C0"
-                                        />
-                                        <Text
-                                            style={styles.sondePickerItemText}
-                                        >
-                                            {s.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                                <TouchableOpacity
-                                    style={styles.sondePickerSkip}
-                                    onPress={() => handleSelectWithSonde(null)}
-                                >
-                                    <Text style={styles.sondePickerSkipText}>
-                                        Sans sonde
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={styles.sondePickerCancel}
-                                    onPress={() => setPendingPlant(null)}
-                                >
-                                    <Text style={styles.sondePickerCancelText}>
-                                        Annuler
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    )}
                 </View>
             </View>
         </Modal>
