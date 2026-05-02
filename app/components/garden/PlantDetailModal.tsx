@@ -13,6 +13,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import type { PlacedPlant, PlacedSonde, PlantType } from "../../types/garden";
 import { DEFAULT_CELL, MIN_CARD_SIZE, PLANT_CATALOG } from "../../constants/garden";
+import { getSondeDisplayName } from "../../utils/sondeDisplay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -234,8 +235,10 @@ export function PlantDetailModal({
                                     const linked = sondes.find((s) => s.id === plant.sondeId);
                                     return linked ? (
                                         <View style={[styles.sondeLinkBtn, styles.sondeLinkBtnActive]}>
-                                            <Feather name="check-circle" size={10} color="#FFF" />
-                                            <Text style={[styles.sondeLinkText, styles.sondeLinkTextActive]}>{linked.name}</Text>
+                                             <Feather name="check-circle" size={10} color="#FFF" />
+                                            <Text style={[styles.sondeLinkText, styles.sondeLinkTextActive]}>
+                                                {getSondeDisplayName(linked, sondes)}
+                                            </Text>
                                         </View>
                                     ) : (
                                         <Text style={[styles.value, { color: "#bbb" }]}>Aucune sonde</Text>

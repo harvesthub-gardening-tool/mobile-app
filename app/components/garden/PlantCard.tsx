@@ -10,7 +10,8 @@ import Animated, {
 } from "react-native-reanimated";
 import type { PlacedPlant, PlacedSonde } from "../../types/garden";
 import { MIN_CARD_SIZE } from "../../constants/garden";
-import type { SensorSummary } from "@harvesthub-gardening-tool/protos-typescript/garden/v1/garden_pb";
+import { getSondeDisplayName } from "../../utils/sondeDisplay";
+import type { ProbeSensorData } from "../../hooks/useSensorData";
 
 const HANDLE_SIZE = 24;
 const HANDLE_HIT = 32;
@@ -19,7 +20,7 @@ const BOTTOM_BAR_HEIGHT = 40;
 type PlantCardProps = {
     plant: PlacedPlant;
     sondes: PlacedSonde[];
-    sensorData: Map<string, SensorSummary>;
+    sensorData: Map<string, ProbeSensorData>;
     isMoving: boolean;
     mapScale: SharedValue<number>;
     isCardInteracting: SharedValue<boolean>;
@@ -46,9 +47,12 @@ export const PlantCard = memo(function PlantCard({
     const linkedSonde = plant.sondeId ? sondes.find((s) => s.id === plant.sondeId) : null;
     const summary = linkedSonde?.nodeId ? sensorData.get(linkedSonde.nodeId) : undefined;
 
-    // Valeurs : réelles si dispo, sinon fictives pour preview
-    const tempValue = summary ? `${summary.avgTemperature.toFixed(1)}°` : "22.5°";
-    const humidValue = summary ? `${Math.round(summary.avgHumidity)}%` : "67%";
+    const tempValue = summary?.airTemperature !== undefined
+        ? `${summary.airTemperature.toFixed(1)}°`
+        : "--";
+    const humidValue = summary?.airHumidity !== undefined
+        ? `${Math.round(summary.airHumidity)}%`
+        : "--";
 
     const offsetX = useSharedValue(0);
     const offsetY = useSharedValue(0);
@@ -162,7 +166,7 @@ export const PlantCard = memo(function PlantCard({
             <View style={styles.bottomBar}>
                 {linkedSonde && (
                     <View style={styles.sondeName}>
-                        <Text style={styles.sondeNameText}>{linkedSonde.name}</Text>
+                        <Text style={styles.sondeNameText}>{getSondeDisplayName(linkedSonde, sondes)}</Text>
                     </View>
                 )}
                 <Pressable
