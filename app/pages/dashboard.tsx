@@ -141,20 +141,6 @@ export default function Dashboard() {
     [plants],
   );
 
-  const handleCardDelete = useCallback(
-    (id: string) => {
-      removePlant(id);
-      setSelectedPlantId((prev) => (prev === id ? null : prev));
-      setDetailPlantId((prev) => (prev === id ? null : prev));
-      setDetailStartsInEditMode(false);
-    },
-    [removePlant],
-  );
-
-  const handleCardToggleMove = useCallback((id: string) => {
-    setMovingId((prev) => (prev === id ? null : id));
-  }, []);
-
   const handleOpenSelectedDetails = useCallback(() => {
     if (!selectedPlantId) {
       return;
@@ -250,21 +236,19 @@ export default function Dashboard() {
               <GrassLayer />
 
               {plants.map((plant) => (
-                <PlantCard
-                  key={plant.id}
-                  plant={plant}
-                  sondes={sondes}
-                  sensorData={sensorData}
-                  isMoving={movingId === plant.id}
-                  isSelected={selectedPlantId === plant.id}
-                  mapScale={scale}
-                  isCardInteracting={isCardInteracting}
-                  onPress={handleCardPress}
-                  onDelete={handleCardDelete}
-                  onToggleMove={handleCardToggleMove}
-                  onMove={handleCardMove}
-                  onResize={handleCardResize}
-                />
+                                <PlantCard
+                                    key={plant.id}
+                                    plant={plant}
+                                    sondes={sondes}
+                                    sensorData={sensorData}
+                                    isMoving={movingId === plant.id}
+                                    isSelected={selectedPlantId === plant.id}
+                                    mapScale={scale}
+                                    isCardInteracting={isCardInteracting}
+                                    onPress={handleCardPress}
+                                    onMove={handleCardMove}
+                                    onResize={handleCardResize}
+                                />
               ))}
 
               {plants.length === 0 && (

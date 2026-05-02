@@ -6,6 +6,8 @@ import type { SensorSummary } from "@harvesthub-gardening-tool/protos-typescript
 export type ProbeSensorData = {
     airTemperature?: number;
     airHumidity?: number;
+    soilHumidity?: number;
+    soilTemperature?: number;
 };
 
 // Retourne la dernière lecture par nodeId, rafraîchie toutes les 30s
@@ -43,6 +45,8 @@ export function useSensorData(): Map<string, ProbeSensorData> {
                             probe.airTemperature ?? summary?.avgAirTemperature,
                         airHumidity:
                             probe.airHumidity ?? summary?.avgAirHumidity,
+                        soilHumidity: summary?.avgSoilHumidity,
+                        soilTemperature: summary?.avgSoilTemperature,
                     });
                 }
             }

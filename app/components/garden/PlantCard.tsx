@@ -1,5 +1,11 @@
 import { memo, useCallback, useEffect } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ImageBackground,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -20,7 +26,8 @@ import { colors, withAlpha } from "../../theme";
 
 const HANDLE_SIZE = 24;
 const HANDLE_HIT = 32;
-const BOTTOM_BAR_HEIGHT = 40;
+const HEADER_HEIGHT = 18;
+const CARD_BACKGROUND_IMAGE = require("../../../assets/images/garden_card_bg.png");
 
 type PlantCardProps = {
   plant: PlacedPlant;
@@ -31,10 +38,14 @@ type PlantCardProps = {
   mapScale: SharedValue<number>;
   isCardInteracting: SharedValue<boolean>;
   onPress: (id: string) => void;
-  onDelete: (id: string) => void;
-  onToggleMove: (id: string) => void;
   onMove: (id: string, x: number, y: number) => void;
-  onResize: (id: string, x: number, y: number, width: number, height: number) => void;
+  onResize: (
+    id: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => void;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -48,15 +59,35 @@ export const PlantCard = memo(function PlantCard({
   mapScale,
   isCardInteracting,
   onPress,
-  onToggleMove,
   onMove,
   onResize,
 }: PlantCardProps) {
-  const linkedSonde = plant.sondeId ? sondes.find((s) => s.id === plant.sondeId) : null;
-  const summary = linkedSonde?.nodeId ? sensorData.get(linkedSonde.nodeId) : undefined;
+  const linkedSonde = plant.sondeId
+    ? sondes.find((s) => s.id === plant.sondeId)
+    : null;
+  const summary = linkedSonde?.nodeId
+    ? sensorData.get(linkedSonde.nodeId)
+    : undefined;
+  const probeDisplayName = linkedSonde
+    ? getSondeDisplayName(linkedSonde, sondes)
+    : null;
 
-  const tempValue = summary?.airTemperature !== undefined ? `${summary.airTemperature.toFixed(1)}°` : "--";
-  const humidValue = summary?.airHumidity !== undefined ? `${Math.round(summary.airHumidity)}%` : "--";
+  const tempValue =
+    summary?.airTemperature !== undefined
+      ? `${summary.airTemperature.toFixed(1)}°`
+      : "--";
+  const humidValue =
+    summary?.airHumidity !== undefined
+      ? `${Math.round(summary.airHumidity)}%`
+      : "--";
+  const soilHumidValue =
+    summary?.soilHumidity !== undefined
+      ? `${Math.round(summary.soilHumidity)}%`
+      : "--";
+  const soilTempValue =
+    summary?.soilTemperature !== undefined
+      ? `${summary.soilTemperature.toFixed(1)}°`
+      : "--";
 
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
@@ -120,7 +151,10 @@ export const PlantCard = memo(function PlantCard({
       runOnJS(commitMove)(offsetX.value, offsetY.value);
     });
 
-  function makeCornerGesture(anchorX: "left" | "right", anchorY: "top" | "bottom") {
+  function makeCornerGesture(
+    anchorX: "left" | "right",
+    anchorY: "top" | "bottom",
+  ) {
     return Gesture.Pan()
       .enabled(isMoving)
       .onBegin(() => {
@@ -152,7 +186,12 @@ export const PlantCard = memo(function PlantCard({
       })
       .onFinalize(() => {
         isCardInteracting.value = false;
-        runOnJS(commitResize)(offsetX.value, offsetY.value, offsetW.value, offsetH.value);
+        runOnJS(commitResize)(
+          offsetX.value,
+          offsetY.value,
+          offsetW.value,
+          offsetH.value,
+        );
       });
   }
 
@@ -165,13 +204,14 @@ export const PlantCard = memo(function PlantCard({
     left: plant.x + offsetX.value,
     top: plant.y + offsetY.value,
     width: Math.max(MIN_CARD_SIZE, plant.width + offsetW.value),
-    height: Math.max(MIN_CARD_SIZE, plant.height + offsetH.value) + BOTTOM_BAR_HEIGHT,
+    height:
+      Math.max(MIN_CARD_SIZE, plant.height + offsetH.value) + HEADER_HEIGHT,
     borderColor: isMoving
       ? colors.brand.info
       : isSelected
         ? withAlpha(colors.brand.primary, 0.45 + 0.4 * pulse.value)
         : withAlpha(colors.base.white, 0.5),
-    borderWidth: isMoving || isSelected ? 3 : 2,
+    // borderWidth: isMoving || isSelected ? 2 : 2,
     shadowColor: colors.overlay.shadow,
     shadowOpacity: isSelected ? 1 : 0,
     shadowRadius: isSelected ? 40 + 8 * pulse.value : 0,
@@ -179,62 +219,135 @@ export const PlantCard = memo(function PlantCard({
   }));
 
   const handlePress = useCallback(() => onPress(plant.id), [onPress, plant.id]);
-  const handleToggleMove = useCallback(() => onToggleMove(plant.id), [onToggleMove, plant.id]);
   const handleHitSlop = (HANDLE_HIT - HANDLE_SIZE) / 2;
 
   const cardContent = (
     <>
-      <View style={styles.topRow}>
-        <Text style={styles.label} numberOfLines={1}>
-          {plant.quantity} {plant.plantType.name}
-          {plant.quantity > 1 ? "s" : ""}
-        </Text>
-        {linkedSonde && (
-          <View style={styles.badgesRow}>
-            <View style={styles.sensorBadge}>
-              <Feather name="thermometer" size={9} color={colors.text.onPrimary} />
-              <Text style={styles.sensorValue}>{tempValue}</Text>
+      <ImageBackground
+        source={CARD_BACKGROUND_IMAGE}
+        style={styles.cardBackground}
+        imageStyle={styles.cardBackgroundImage}
+      >
+        <View style={styles.topRow}>
+          {probeDisplayName && (
+            <View style={styles.headerProbeTextWrap}>
+              <Text
+                style={[
+                  styles.headerProbeName,
+                  styles.headerProbeNameOutlineLeft,
+                ]}
+                numberOfLines={1}
+              >
+                {probeDisplayName}
+              </Text>
+              <Text
+                style={[
+                  styles.headerProbeName,
+                  styles.headerProbeNameOutlineRight,
+                ]}
+                numberOfLines={1}
+              >
+                {probeDisplayName}
+              </Text>
+              <Text
+                style={[
+                  styles.headerProbeName,
+                  styles.headerProbeNameOutlineTop,
+                ]}
+                numberOfLines={1}
+              >
+                {probeDisplayName}
+              </Text>
+              <Text
+                style={[
+                  styles.headerProbeName,
+                  styles.headerProbeNameOutlineBottom,
+                ]}
+                numberOfLines={1}
+              >
+                {probeDisplayName}
+              </Text>
+              <Text style={styles.headerProbeName} numberOfLines={1}>
+                {probeDisplayName}
+              </Text>
             </View>
-            <View style={[styles.sensorBadge, styles.sensorBadgeHumid]}>
-              <Feather name="droplet" size={9} color={colors.text.onPrimary} />
-              <Text style={styles.sensorValue}>{humidValue}</Text>
+          )}
+        </View>
+
+        <View style={styles.mainContainer}>
+          <View style={styles.mainSectionAir}>
+            <View style={styles.airDataRow}>
+              <View style={[styles.sensorBadge, styles.sensorBadgeTemp]}>
+                <Feather
+                  name="thermometer"
+                  size={9}
+                  color={colors.text.onPrimary}
+                />
+                <Text style={styles.sensorValue}>{tempValue}</Text>
+              </View>
+              <View style={[styles.sensorBadge, styles.sensorBadgeHumid]}>
+                <Feather
+                  name="droplet"
+                  size={9}
+                  color={colors.text.onPrimary}
+                />
+                <Text style={styles.sensorValue}>{humidValue}</Text>
+              </View>
             </View>
           </View>
-        )}
-      </View>
 
-      <View style={styles.body}>
-        <Text style={styles.emoji}>{plant.plantType.emoji}</Text>
-      </View>
-
-      <View style={styles.bottomBar}>
-        {linkedSonde && (
-          <View style={styles.sondeName}>
-            <Text style={styles.sondeNameText}>{getSondeDisplayName(linkedSonde, sondes)}</Text>
+          <View style={styles.mainSectionPlant}>
+            <Text style={styles.emoji}>{plant.plantType.emoji}</Text>
           </View>
-        )}
-        <Pressable style={[styles.actionBtn, isMoving && styles.actionBtnActive]} onPress={handleToggleMove}>
-          <Feather
-            name="move"
-            size={12}
-            color={isMoving ? colors.text.onPrimary : colors.text.secondary}
-          />
-        </Pressable>
-      </View>
+
+          <View style={styles.mainSectionSoil}>
+            <View style={styles.soilDataRow}>
+              <View style={[styles.sensorBadge, styles.sensorBadgeTemp]}>
+                <Feather
+                  name="thermometer"
+                  size={9}
+                  color={colors.text.onPrimary}
+                />
+                <Text style={styles.sensorValue}>{soilTempValue}</Text>
+              </View>
+              <View style={[styles.sensorBadge, styles.sensorBadgeHumid]}>
+                <Feather
+                  name="cloud-rain"
+                  size={9}
+                  color={colors.text.onPrimary}
+                />
+                <Text style={styles.sensorValue}>{soilHumidValue}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ImageBackground>
 
       {isMoving && (
         <>
           <GestureDetector gesture={topLeftGesture}>
-            <Animated.View hitSlop={handleHitSlop} style={[styles.handle, styles.handleTL]} />
+            <Animated.View
+              hitSlop={handleHitSlop}
+              style={[styles.handle, styles.handleTL]}
+            />
           </GestureDetector>
           <GestureDetector gesture={topRightGesture}>
-            <Animated.View hitSlop={handleHitSlop} style={[styles.handle, styles.handleTR]} />
+            <Animated.View
+              hitSlop={handleHitSlop}
+              style={[styles.handle, styles.handleTR]}
+            />
           </GestureDetector>
           <GestureDetector gesture={bottomLeftGesture}>
-            <Animated.View hitSlop={handleHitSlop} style={[styles.handle, styles.handleBL]} />
+            <Animated.View
+              hitSlop={handleHitSlop}
+              style={[styles.handle, styles.handleBL]}
+            />
           </GestureDetector>
           <GestureDetector gesture={bottomRightGesture}>
-            <Animated.View hitSlop={handleHitSlop} style={[styles.handle, styles.handleBR]} />
+            <Animated.View
+              hitSlop={handleHitSlop}
+              style={[styles.handle, styles.handleBR]}
+            />
           </GestureDetector>
         </>
       )}
@@ -244,7 +357,11 @@ export const PlantCard = memo(function PlantCard({
   if (isMoving) {
     return (
       <GestureDetector gesture={dragGesture}>
-        <Animated.View style={[styles.card, styles.cardMoving, animatedCardStyle]}>{cardContent}</Animated.View>
+        <Animated.View
+          style={[styles.card, styles.cardMoving, animatedCardStyle]}
+        >
+          {cardContent}
+        </Animated.View>
       </GestureDetector>
     );
   }
@@ -257,7 +374,7 @@ export const PlantCard = memo(function PlantCard({
           left: plant.x,
           top: plant.y,
           width: plant.width,
-          height: plant.height + BOTTOM_BAR_HEIGHT,
+          height: plant.height + HEADER_HEIGHT,
         },
         animatedCardStyle,
       ]}
@@ -275,46 +392,109 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: withAlpha(colors.base.white, 0.5),
     backgroundColor: withAlpha(colors.base.white, 0.18),
-    padding: 6,
+    padding: 2,
   },
   cardMoving: {
     borderColor: colors.brand.info,
-    borderWidth: 3,
     backgroundColor: withAlpha(colors.brand.info, 0.14),
   },
   topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    height: HEADER_HEIGHT,
+    justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 6,
   },
-  label: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: colors.text.onPrimary,
-    textShadowColor: withAlpha(colors.base.black, 0.45),
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  headerProbeTextWrap: {
+    maxWidth: "100%",
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardBackground: {
     flex: 1,
-    marginRight: 4,
+    borderRadius: 20,
+    overflow: "hidden",
   },
-  badgesRow: {
+  cardBackgroundImage: {
+    resizeMode: "cover",
+    opacity: 0.9,
+  },
+  headerProbeName: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+    color: colors.text.onPrimary,
+  },
+  headerProbeNameOutlineLeft: {
+    position: "absolute",
+    left: -0.8,
+    color: withAlpha(colors.base.black, 0.88),
+  },
+  headerProbeNameOutlineRight: {
+    position: "absolute",
+    left: 0.8,
+    color: withAlpha(colors.base.black, 0.88),
+  },
+  headerProbeNameOutlineTop: {
+    position: "absolute",
+    top: -0.8,
+    color: withAlpha(colors.base.black, 0.88),
+  },
+  headerProbeNameOutlineBottom: {
+    position: "absolute",
+    top: 0.8,
+    color: withAlpha(colors.base.black, 0.88),
+  },
+  mainContainer: {
+    flex: 1,
+  },
+  mainSectionAir: {
+    minHeight: 0,
+    flex: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 1,
+  },
+  mainSectionPlant: {
+    minHeight: 0,
+    flex: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mainSectionSoil: {
+    minHeight: 0,
+    flex: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 1,
+  },
+  airDataRow: {
     flexDirection: "row",
-    gap: 3,
+    alignItems: "center",
+    gap: 4,
+    height: "100%",
+  },
+  soilDataRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   sensorBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: withAlpha(colors.state.danger, 0.78),
     borderRadius: 8,
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     paddingVertical: 2,
   },
+  sensorBadgeTemp: {
+    backgroundColor: withAlpha(colors.state.danger, 0.78),
+  },
   sensorBadgeHumid: {
-    backgroundColor: withAlpha(colors.brand.secondary, 0.78),
+    backgroundColor: withAlpha(colors.brand.primary, 0.82),
   },
   sensorValue: {
-    fontSize: 9,
+    fontSize: 14,
     fontWeight: "700",
     color: colors.text.onPrimary,
   },
@@ -325,36 +505,6 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 64,
-  },
-  bottomBar: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 5,
-    paddingTop: 4,
-    height: BOTTOM_BAR_HEIGHT - 4,
-  },
-  sondeName: {
-    backgroundColor: withAlpha(colors.base.white, 0.85),
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  sondeNameText: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: colors.brand.secondary,
-  },
-  actionBtn: {
-    width: 28,
-    height: 28,
-    backgroundColor: withAlpha(colors.base.white, 0.9),
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  actionBtnActive: {
-    backgroundColor: colors.brand.info,
   },
   handle: {
     position: "absolute",
