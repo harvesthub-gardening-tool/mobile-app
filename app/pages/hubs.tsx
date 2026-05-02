@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useHubs } from "../hooks/useHubs";
+import { colors, withAlpha } from "../theme";
 
 function formatDate(ts: bigint): string {
     const date = new Date(Number(ts));
@@ -38,7 +39,7 @@ export default function HubsPage() {
                     style={styles.backButton}
                     onPress={() => router.back()}
                 >
-                    <Feather name="chevron-left" size={20} color="#2B2B2B" />
+                    <Feather name="chevron-left" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Paramètres des hubs</Text>
                 <View style={styles.backButtonPlaceholder} />
@@ -46,7 +47,7 @@ export default function HubsPage() {
 
             {loading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color="#1565C0" />
+                    <ActivityIndicator size="large" color={colors.brand.secondary} />
                 </View>
             ) : (
                 <ScrollView
@@ -59,7 +60,7 @@ export default function HubsPage() {
 
                     {sortedHubs.length === 0 ? (
                         <View style={styles.emptyCard}>
-                            <Feather name="cpu" size={20} color="#999" />
+                            <Feather name="cpu" size={20} color={colors.text.muted} />
                             <Text style={styles.emptyTitle}>Aucun hub associé</Text>
                             <Text style={styles.emptyText}>
                                 Associez un hub pour commencer à recevoir des données.
@@ -103,7 +104,7 @@ export default function HubsPage() {
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: "#F5F5F5" },
+    safe: { flex: 1, backgroundColor: colors.surface.base },
     header: {
         height: 72,
         paddingHorizontal: 18,
@@ -114,10 +115,12 @@ const styles = StyleSheet.create({
     backButton: {
         width: 34,
         height: 34,
-        borderRadius: 12,
+        borderRadius: 18,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.surface.lowest,
+        borderWidth: 1,
+        borderColor: withAlpha(colors.border.subtle, 0.2),
     },
     backButtonPlaceholder: {
         width: 34,
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#1B1B1B",
+        color: colors.text.primary,
     },
     centered: {
         flex: 1,
@@ -139,12 +142,12 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     error: {
-        color: "#D32F2F",
+        color: colors.state.danger,
         fontSize: 13,
     },
     emptyCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
+        backgroundColor: colors.surface.lowest,
+        borderRadius: 24,
         padding: 16,
         alignItems: "center",
         gap: 6,
@@ -152,18 +155,20 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 14,
         fontWeight: "700",
-        color: "#2B2B2B",
+        color: colors.text.secondary,
     },
     emptyText: {
         fontSize: 12,
-        color: "#666",
+        color: colors.text.secondary,
         textAlign: "center",
     },
     hubCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
+        backgroundColor: colors.surface.lowest,
+        borderRadius: 24,
         padding: 14,
         gap: 6,
+        borderWidth: 1,
+        borderColor: withAlpha(colors.border.subtle, 0.18),
     },
     hubTopRow: {
         flexDirection: "row",
@@ -175,7 +180,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         fontWeight: "700",
-        color: "#2B2B2B",
+        color: colors.text.secondary,
     },
     statusBadge: {
         borderRadius: 999,
@@ -183,21 +188,21 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
     },
     statusClaimed: {
-        backgroundColor: "#E8F5E9",
+        backgroundColor: colors.state.successSoft,
     },
     statusPending: {
-        backgroundColor: "#FFF8E1",
+        backgroundColor: colors.state.warningSoft,
     },
     statusRevoked: {
-        backgroundColor: "#FFEBEE",
+        backgroundColor: colors.state.dangerSoft,
     },
     statusText: {
         fontSize: 11,
         fontWeight: "700",
-        color: "#2B2B2B",
+        color: colors.text.secondary,
     },
     hubMeta: {
         fontSize: 12,
-        color: "#666",
+        color: colors.text.secondary,
     },
 });

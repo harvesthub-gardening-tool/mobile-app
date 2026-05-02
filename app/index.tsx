@@ -1,4 +1,5 @@
 import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
+import { colors } from "./theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -42,7 +43,7 @@ export default function Index() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.surface.lowest,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -76,6 +77,6 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 16,
-        color: "#444",
+        color: colors.text.secondary,
     },
 });

@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
         height: CONTAINER_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colors.surface.raised,
+        backgroundColor: colors.surface.glass,
         borderRadius: 22,
         shadowColor: colors.overlay.shadow,
         shadowOffset: {
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16.0,
         elevation: 8,
         borderWidth: 1,
-        borderColor: withAlpha(colors.border.medium, 0.9),
+        borderColor: withAlpha(colors.border.subtle, 0.35),
     },
     activeIndicator: {
         position: "absolute",

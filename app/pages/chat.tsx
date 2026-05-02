@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../theme";
 
 export default function Chat() {
     return (
@@ -18,14 +19,18 @@ export default function Chat() {
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: "#F5F5F5" },
+    safe: { flex: 1, backgroundColor: colors.surface.base },
     header: {
         height: 180,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.brand.primary,
         justifyContent: "center",
         alignItems: "center",
     },
-    headerTitle: { fontSize: 26, fontWeight: "700" },
+    headerTitle: { fontSize: 26, fontWeight: "700", color: colors.text.onPrimary },
     cardWrapper: { flex: 1, marginTop: -40, paddingHorizontal: 20 },
-    card: { backgroundColor: "#FFF", borderRadius: 24, padding: 20 },
+    card: {
+        backgroundColor: colors.surface.lowest,
+        borderRadius: 24,
+        padding: 20,
+    },
 });

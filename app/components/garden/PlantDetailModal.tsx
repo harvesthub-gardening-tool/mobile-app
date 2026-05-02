@@ -13,7 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import type { PlacedPlant, PlacedSonde, PlantType } from "../../types/garden";
 import { PLANT_CATALOG } from "../../constants/garden";
 import { getSondeDisplayName } from "../../utils/sondeDisplay";
-import { colors } from "../../theme";
+import { colors, withAlpha } from "../../theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -22,13 +22,7 @@ type PlantDetailModalProps = {
   sondes: PlacedSonde[];
   startInEditMode?: boolean;
   onClose: () => void;
-  onSave: (
-    id: string,
-    plantType: PlantType,
-    width: number,
-    height: number,
-    quantity: number,
-  ) => void;
+  onSave: (id: string, plantType: PlantType, width: number, height: number, quantity: number) => void;
   onDelete: (id: string) => void;
   onLinkSonde: (plantId: string, sondeId: string | null) => void;
 };
@@ -46,12 +40,9 @@ export function PlantDetailModal({
   onClose,
   onSave,
   onDelete,
-  onLinkSonde,
 }: PlantDetailModalProps) {
   const [editing, setEditing] = useState(false);
-  const [selectedPlantType, setSelectedPlantType] = useState<PlantType | null>(
-    null,
-  );
+  const [selectedPlantType, setSelectedPlantType] = useState<PlantType | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -68,9 +59,7 @@ export function PlantDetailModal({
   const currentType = selectedPlantType ?? plant.plantType;
 
   const filteredCatalog = search.trim()
-    ? PLANT_CATALOG.filter((p) =>
-        p.name.toLowerCase().includes(search.trim().toLowerCase()),
-      )
+    ? PLANT_CATALOG.filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase()))
     : PLANT_CATALOG;
 
   const handleClose = () => {
@@ -90,41 +79,28 @@ export function PlantDetailModal({
       transparent
       onRequestClose={handleClose}
     >
-      {/* Tap outside → ferme */}
       <TouchableOpacity
         style={[styles.overlay, isEditing && styles.editOverlay]}
         activeOpacity={1}
         onPress={handleClose}
       >
-        {/* onStartShouldSetResponder stoppe la propagation vers l'overlay */}
-        <View
-          style={[styles.modal, isEditing && styles.editSheet]}
-          onStartShouldSetResponder={() => true}
-        >
+        <View style={[styles.modal, isEditing && styles.editSheet]} onStartShouldSetResponder={() => true}>
           {isEditing ? (
-            /* ── MODE ÉDITION ── */
             <>
               <View style={styles.editHeader}>
                 <View>
                   <Text style={styles.editTitle}>Choisir une plante</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={handleClose}
-                >
+                <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
                   <Feather name="x" size={18} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.selectedPlantPreview}>
-                <Text style={styles.selectedPlantEmoji}>
-                  {currentType.emoji}
-                </Text>
+                <Text style={styles.selectedPlantEmoji}>{currentType.emoji}</Text>
                 <View style={styles.selectedPlantCopy}>
                   <Text style={styles.selectedPlantLabel}>Sélection</Text>
-                  <Text style={styles.selectedPlantName}>
-                    {currentType.name}
-                  </Text>
+                  <Text style={styles.selectedPlantName}>{currentType.name}</Text>
                 </View>
               </View>
 
@@ -164,26 +140,17 @@ export function PlantDetailModal({
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel={`Associer ${item.name}`}
-                      style={[
-                        styles.plantGridItem,
-                        isSelected && styles.plantGridItemSelected,
-                      ]}
+                      style={[styles.plantGridItem, isSelected && styles.plantGridItemSelected]}
                       activeOpacity={0.86}
                       onPress={() => setSelectedPlantType(item)}
                     >
                       <Text style={styles.plantEmoji}>{item.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.plantName,
-                          isSelected && styles.plantNameSelected,
-                        ]}
-                        numberOfLines={1}
-                      >
+                      <Text style={[styles.plantName, isSelected && styles.plantNameSelected]} numberOfLines={1}>
                         {item.name}
                       </Text>
                       {isSelected && (
                         <View style={styles.selectedCheck}>
-                          <Feather name="check" size={12} color={colors.text.onDark} />
+                          <Feather name="check" size={12} color={colors.text.onPrimary} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -192,71 +159,46 @@ export function PlantDetailModal({
               />
 
               <View style={styles.editFooter}>
-                <TouchableOpacity
-                  style={styles.btnCancel}
-                  onPress={handleClose}
-                >
+                <TouchableOpacity style={styles.btnCancel} onPress={handleClose}>
                   <Text style={styles.btnCancelText}>Annuler</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.btnSave} onPress={handleSave}>
-                  <Feather name="check" size={15} color={colors.text.onDark} />
+                  <Feather name="check" size={15} color={colors.text.onPrimary} />
                   <Text style={styles.btnSaveText}>Associer</Text>
                 </TouchableOpacity>
               </View>
             </>
           ) : (
-            /* ── MODE DÉTAIL ── */
             <>
-              {/* Header */}
               <View style={styles.modalHeader}>
                 <Text style={styles.emoji}>{currentType.emoji}</Text>
                 <Text style={styles.name}>{currentType.name}</Text>
-                <Text style={styles.category}>
-                  {getCategoryLabel(currentType.category)}
-                </Text>
+                <Text style={styles.category}>{getCategoryLabel(currentType.category)}</Text>
               </View>
 
               <View style={styles.row}>
                 <Text style={styles.label}>Ensoleillement</Text>
-                <Text style={[styles.value, { color: colors.text.muted }]}> 
-                  Pas de données
-                </Text>
+                <Text style={[styles.value, { color: colors.text.muted }]}>Pas de données</Text>
               </View>
               <View style={styles.row}>
                 <Text style={styles.label}>Sonde</Text>
                 {(() => {
                   const linked = sondes.find((s) => s.id === plant.sondeId);
                   return linked ? (
-                    <View
-                      style={[styles.sondeLinkBtn, styles.sondeLinkBtnActive]}
-                    >
-                      <Feather
-                        name="check-circle"
-                        size={10}
-                        color={colors.text.onDark}
-                      />
-                      <Text
-                        style={[
-                          styles.sondeLinkText,
-                          styles.sondeLinkTextActive,
-                        ]}
-                      >
+                    <View style={[styles.sondeLinkBtn, styles.sondeLinkBtnActive]}>
+                      <Feather name="check-circle" size={10} color={colors.text.onPrimary} />
+                      <Text style={[styles.sondeLinkText, styles.sondeLinkTextActive]}>
                         {getSondeDisplayName(linked, sondes)}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={[styles.value, { color: colors.text.muted }]}> 
-                      Aucune sonde
-                    </Text>
+                    <Text style={[styles.value, { color: colors.text.muted }]}>Aucune sonde</Text>
                   );
                 })()}
               </View>
 
               <View style={styles.btns}>
-                <TouchableOpacity
-                  style={[styles.btnDelete, styles.btnDeleteSingle]}
-                  onPress={() => onDelete(plant.id)}
-                >
+                <TouchableOpacity style={[styles.btnDelete, styles.btnDeleteSingle]} onPress={() => onDelete(plant.id)}>
                   <Feather name="trash-2" size={15} color={colors.state.danger} />
                   <Text style={styles.btnDeleteText}>Supprimer</Text>
                 </TouchableOpacity>
@@ -280,7 +222,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: colors.surface.base,
+    backgroundColor: colors.surface.lowest,
     borderRadius: 24,
     width: SCREEN_WIDTH - 40,
     padding: 24,
@@ -326,40 +268,26 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.text.primary,
   },
-  editSubtitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.text.secondary,
-    marginTop: 2,
-  },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.surface.soft,
+    backgroundColor: colors.surface.low,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.text.muted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
   },
   selectedPlantPreview: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.surface.subtle,
+    backgroundColor: colors.surface.low,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border.medium,
+    borderColor: withAlpha(colors.border.subtle, 0.2),
   },
   selectedPlantEmoji: {
     fontSize: 36,
@@ -384,7 +312,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: colors.surface.soft,
+    backgroundColor: colors.surface.low,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 44,
@@ -409,17 +337,17 @@ const styles = StyleSheet.create({
     minHeight: 88,
     paddingHorizontal: 8,
     paddingVertical: 10,
-    borderRadius: 18,
+    borderRadius: 24,
     margin: 4,
-    backgroundColor: colors.surface.subtle,
-    borderWidth: 1.5,
-    borderColor: colors.border.light,
+    backgroundColor: colors.surface.low,
+    borderWidth: 1,
+    borderColor: withAlpha(colors.border.subtle, 0.2),
     position: "relative",
   },
   plantGridItemSelected: {
     backgroundColor: colors.state.successSoft,
     borderWidth: 2,
-    borderColor: colors.border.accent,
+    borderColor: colors.brand.primary,
   },
   plantEmoji: {
     fontSize: 34,
@@ -460,7 +388,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.surface.soft,
+    borderBottomColor: withAlpha(colors.border.subtle, 0.2),
   },
   label: {
     fontSize: 13,
@@ -490,7 +418,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 24,
     backgroundColor: colors.state.dangerSoft,
   },
   btnDeleteSingle: {
@@ -508,30 +436,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 24,
     backgroundColor: colors.brand.primary,
   },
   btnSaveText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.text.onDark,
+    color: colors.text.onPrimary,
   },
   btnCancel: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.surface.soft,
+    borderRadius: 24,
+    backgroundColor: colors.surface.low,
+    borderWidth: 1,
+    borderColor: withAlpha(colors.border.subtle, 0.2),
   },
   btnCancelText: {
     fontSize: 13,
     fontWeight: "600",
     color: colors.text.secondary,
-  },
-  sondeLinkRow: {
-    flexDirection: "row",
-    gap: 6,
   },
   sondeLinkBtn: {
     flexDirection: "row",
@@ -551,6 +477,6 @@ const styles = StyleSheet.create({
     color: colors.brand.secondary,
   },
   sondeLinkTextActive: {
-    color: colors.text.onDark,
+    color: colors.text.onPrimary,
   },
 });

@@ -15,6 +15,6 @@ export default function PagesLayout() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background.app },
+    container: { flex: 1, backgroundColor: colors.surface.base },
     content: { flex: 1 },
 });
