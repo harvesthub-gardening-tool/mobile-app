@@ -6,12 +6,17 @@ import Animated, {
     useSharedValue,
     useAnimatedStyle,
     runOnJS,
+    withRepeat,
+    withTiming,
+    Easing,
+    cancelAnimation,
     type SharedValue,
 } from "react-native-reanimated";
 import type { PlacedPlant, PlacedSonde } from "../../types/garden";
 import { MIN_CARD_SIZE } from "../../constants/garden";
 import { getSondeDisplayName } from "../../utils/sondeDisplay";
 import type { ProbeSensorData } from "../../hooks/useSensorData";
+import { colors, withAlpha } from "../../theme";
 
 const HANDLE_SIZE = 24;
 const HANDLE_HIT = 32;
@@ -22,6 +27,7 @@ type PlantCardProps = {
     sondes: PlacedSonde[];
     sensorData: Map<string, ProbeSensorData>;
     isMoving: boolean;
+    isSelected: boolean;
     mapScale: SharedValue<number>;
     isCardInteracting: SharedValue<boolean>;
     onPress: (id: string) => void;
@@ -37,6 +43,7 @@ export const PlantCard = memo(function PlantCard({
     sondes,
     sensorData,
     isMoving,
+    isSelected,
     mapScale,
     isCardInteracting,
     onPress,
@@ -58,6 +65,7 @@ export const PlantCard = memo(function PlantCard({
     const offsetY = useSharedValue(0);
     const offsetW = useSharedValue(0);
     const offsetH = useSharedValue(0);
+    const pulse = useSharedValue(0);
 
     useEffect(() => {
         offsetX.value = 0;
@@ -65,6 +73,23 @@ export const PlantCard = memo(function PlantCard({
         offsetW.value = 0;
         offsetH.value = 0;
     }, [plant.x, plant.y, plant.width, plant.height]);
+
+    useEffect(() => {
+        if (!isSelected || isMoving) {
+            cancelAnimation(pulse);
+            pulse.value = 0;
+            return;
+        }
+
+        pulse.value = withRepeat(
+            withTiming(1, {
+                duration: 850,
+                easing: Easing.inOut(Easing.ease),
+            }),
+            -1,
+            true,
+        );
+    }, [isSelected, isMoving, pulse]);
 
     const commitMove = useCallback(
         (dx: number, dy: number) => onMove(plant.id, plant.x + dx, plant.y + dy),
@@ -130,7 +155,38 @@ export const PlantCard = memo(function PlantCard({
         top: plant.y + offsetY.value,
         width: Math.max(MIN_CARD_SIZE, plant.width + offsetW.value),
         height: Math.max(MIN_CARD_SIZE, plant.height + offsetH.value) + BOTTOM_BAR_HEIGHT,
+        borderColor: isMoving
+            ? colors.brand.info
+            : isSelected
+              ? withAlpha(colors.brand.primary, 0.48 + 0.42 * pulse.value)
+              : colors.overlay.white50,
+        borderWidth: isMoving ? 3 : isSelected ? 3 : 2,
+        shadowColor: isSelected ? colors.brand.primary : colors.overlay.shadow,
+        shadowOpacity: isSelected ? 0.12 + 0.16 * pulse.value : 0,
+        shadowRadius: isSelected ? 8 + 5 * pulse.value : 0,
+        elevation: isSelected ? 4 : 0,
     }));
+
+    const selectedCardStyle = useAnimatedStyle(() => {
+        if (isMoving || !isSelected) {
+            return {
+                borderColor: colors.overlay.white50,
+                borderWidth: 2,
+                shadowOpacity: 0,
+                shadowRadius: 0,
+                elevation: 0,
+            };
+        }
+
+        return {
+            borderColor: withAlpha(colors.brand.primary, 0.48 + 0.42 * pulse.value),
+            borderWidth: 3,
+            shadowColor: colors.brand.primary,
+            shadowOpacity: 0.12 + 0.16 * pulse.value,
+            shadowRadius: 8 + 5 * pulse.value,
+            elevation: 4,
+        };
+    });
 
     const handlePress = useCallback(() => onPress(plant.id), [onPress, plant.id]);
     const handleToggleMove = useCallback(() => onToggleMove(plant.id), [onToggleMove, plant.id]);
@@ -146,11 +202,11 @@ export const PlantCard = memo(function PlantCard({
                 {linkedSonde && (
                     <View style={styles.badgesRow}>
                         <View style={styles.sensorBadge}>
-                            <Feather name="thermometer" size={9} color="#FFF" />
+                            <Feather name="thermometer" size={9} color={colors.text.onDark} />
                             <Text style={styles.sensorValue}>{tempValue}</Text>
                         </View>
                         <View style={[styles.sensorBadge, styles.sensorBadgeHumid]}>
-                            <Feather name="droplet" size={9} color="#FFF" />
+                            <Feather name="droplet" size={9} color={colors.text.onDark} />
                             <Text style={styles.sensorValue}>{humidValue}</Text>
                         </View>
                     </View>
@@ -173,7 +229,11 @@ export const PlantCard = memo(function PlantCard({
                     style={[styles.actionBtn, isMoving && styles.actionBtnActive]}
                     onPress={handleToggleMove}
                 >
-                    <Feather name="move" size={12} color={isMoving ? "#FFF" : "#666"} />
+                    <Feather
+                        name="move"
+                        size={12}
+                        color={isMoving ? colors.text.onDark : colors.text.secondary}
+                    />
                 </Pressable>
             </View>
 
@@ -207,28 +267,39 @@ export const PlantCard = memo(function PlantCard({
     }
 
     return (
-        <Pressable
-            style={[styles.card, { left: plant.x, top: plant.y, width: plant.width, height: plant.height + BOTTOM_BAR_HEIGHT }]}
+        <AnimatedPressable
+            style={[
+                styles.card,
+                {
+                    left: plant.x,
+                    top: plant.y,
+                    width: plant.width,
+                    height: plant.height + BOTTOM_BAR_HEIGHT,
+                },
+                selectedCardStyle,
+            ]}
             onPress={handlePress}
         >
             {cardContent}
-        </Pressable>
+        </AnimatedPressable>
     );
 });
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const styles = StyleSheet.create({
     card: {
         position: "absolute",
         borderRadius: 18,
         borderWidth: 2,
-        borderColor: "rgba(255,255,255,0.5)",
-        backgroundColor: "rgba(255,255,255,0.15)",
+        borderColor: colors.overlay.white50,
+        backgroundColor: withAlpha(colors.text.onDark, 0.15),
         padding: 6,
     },
     cardMoving: {
-        borderColor: "#2196F3",
+        borderColor: colors.brand.info,
         borderWidth: 3,
-        backgroundColor: "rgba(33,150,243,0.15)",
+        backgroundColor: withAlpha(colors.brand.info, 0.15),
     },
     topRow: {
         flexDirection: "row",
@@ -238,8 +309,8 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 10,
         fontWeight: "700",
-        color: "#FFF",
-        textShadowColor: "rgba(0,0,0,0.4)",
+        color: colors.text.onDark,
+        textShadowColor: withAlpha(colors.overlay.shadow, 0.4),
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
         flex: 1,
@@ -253,18 +324,18 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 3,
-        backgroundColor: "rgba(183,28,28,0.75)",
+        backgroundColor: withAlpha("#B71C1C", 0.75),
         borderRadius: 8,
         paddingHorizontal: 5,
         paddingVertical: 2,
     },
     sensorBadgeHumid: {
-        backgroundColor: "rgba(21,101,192,0.75)",
+        backgroundColor: withAlpha(colors.brand.secondary, 0.75),
     },
     sensorValue: {
         fontSize: 9,
         fontWeight: "700",
-        color: "#FFF",
+        color: colors.text.onDark,
     },
     body: {
         flex: 1,
@@ -283,7 +354,7 @@ const styles = StyleSheet.create({
         height: BOTTOM_BAR_HEIGHT - 4,
     },
     sondeName: {
-        backgroundColor: "rgba(255,255,255,0.85)",
+        backgroundColor: withAlpha(colors.text.onDark, 0.85),
         borderRadius: 10,
         paddingHorizontal: 6,
         paddingVertical: 3,
@@ -291,27 +362,27 @@ const styles = StyleSheet.create({
     sondeNameText: {
         fontSize: 9,
         fontWeight: "600",
-        color: "#1565C0",
+        color: colors.brand.secondary,
     },
     actionBtn: {
         width: 28,
         height: 28,
-        backgroundColor: "rgba(255,255,255,0.9)",
+        backgroundColor: colors.surface.raisedMuted,
         borderRadius: 14,
         justifyContent: "center",
         alignItems: "center",
     },
     actionBtnActive: {
-        backgroundColor: "#2196F3",
+        backgroundColor: colors.brand.info,
     },
     handle: {
         position: "absolute",
         width: HANDLE_SIZE,
         height: HANDLE_SIZE,
         borderRadius: HANDLE_SIZE / 2,
-        backgroundColor: "#2196F3",
+        backgroundColor: colors.brand.info,
         borderWidth: 2,
-        borderColor: "#FFF",
+        borderColor: colors.text.onDark,
     },
     handleTL: { top: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2 },
     handleTR: { top: -HANDLE_SIZE / 2, right: -HANDLE_SIZE / 2 },

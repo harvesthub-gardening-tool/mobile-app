@@ -1,6 +1,7 @@
 import { Slot } from "expo-router";
 import { View, StyleSheet } from "react-native";
 import BottomMenu from "../components/BottomMenu";
+import { colors } from "../theme";
 
 export default function PagesLayout() {
     return (
@@ -14,6 +15,6 @@ export default function PagesLayout() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F5F5F5" },
+    container: { flex: 1, backgroundColor: colors.background.app },
     content: { flex: 1 },
 });

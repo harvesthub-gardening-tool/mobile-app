@@ -22,8 +22,11 @@ import {
     PlantDetailModal,
     SondeListModal,
 } from "../components/garden";
+import { colors, withAlpha } from "../theme";
 
 export default function Dashboard() {
+    const [mapViewportSize, setMapViewportSize] = useState({ width: 0, height: 0 });
+
     const {
         plants,
         sondes,
@@ -37,19 +40,40 @@ export default function Dashboard() {
 
     const sensorData = useSensorData();
 
-    const [selectedPlant, setSelectedPlant] = useState<PlacedPlant | null>(null);
+    const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+    const [detailPlantId, setDetailPlantId] = useState<string | null>(null);
+    const [detailStartsInEditMode, setDetailStartsInEditMode] = useState(false);
     const [movingId, setMovingId] = useState<string | null>(null);
     const [showCatalog, setShowCatalog] = useState(false);
     const [showSondeList, setShowSondeList] = useState(false);
 
     const handleMapTap = useCallback(() => {
         setMovingId(null);
+        setSelectedPlantId(null);
+        setDetailPlantId(null);
+        setDetailStartsInEditMode(false);
     }, []);
+
+    const selectedPlant = useMemo<PlacedPlant | null>(() => {
+        if (!selectedPlantId) {
+            return null;
+        }
+        return plants.find((p) => p.id === selectedPlantId) ?? null;
+    }, [plants, selectedPlantId]);
+
+    const detailPlant = useMemo<PlacedPlant | null>(() => {
+        if (!detailPlantId) {
+            return null;
+        }
+        return plants.find((p) => p.id === detailPlantId) ?? null;
+    }, [plants, detailPlantId]);
 
     const {
         composedGesture,
         animatedStyle,
         scale,
+        translateX,
+        translateY,
         isCardInteracting,
         zoomIn,
         zoomOut,
@@ -92,7 +116,9 @@ export default function Dashboard() {
     const handlePlantDelete = useCallback(
         (id: string) => {
             removePlant(id);
-            setSelectedPlant(null);
+            setSelectedPlantId((prev) => (prev === id ? null : prev));
+            setDetailPlantId((prev) => (prev === id ? null : prev));
+            setDetailStartsInEditMode(false);
         },
         [removePlant],
     );
@@ -100,28 +126,27 @@ export default function Dashboard() {
     const handleDetailLinkSonde = useCallback(
         (plantId: string, sondeId: string | null) => {
             linkPlantToSonde(plantId, sondeId);
-            setSelectedPlant((prev) =>
-                prev && prev.id === plantId ? { ...prev, sondeId } : prev,
-            );
         },
         [linkPlantToSonde],
     );
 
     const handleCardPress = useCallback(
         (id: string) => {
-            if (movingId === id) {
-                setMovingId(null);
-            } else {
-                const plant = plants.find((p) => p.id === id);
-                if (plant) setSelectedPlant(plant);
+            const plant = plants.find((p) => p.id === id);
+            if (!plant) {
+                return;
             }
+            setSelectedPlantId(id);
         },
-        [movingId, plants],
+        [plants],
     );
 
     const handleCardDelete = useCallback(
         (id: string) => {
             removePlant(id);
+            setSelectedPlantId((prev) => (prev === id ? null : prev));
+            setDetailPlantId((prev) => (prev === id ? null : prev));
+            setDetailStartsInEditMode(false);
         },
         [removePlant],
     );
@@ -129,6 +154,29 @@ export default function Dashboard() {
     const handleCardToggleMove = useCallback((id: string) => {
         setMovingId((prev) => (prev === id ? null : id));
     }, []);
+
+    const handleOpenSelectedDetails = useCallback(() => {
+        if (!selectedPlantId) {
+            return;
+        }
+        setDetailStartsInEditMode(false);
+        setDetailPlantId(selectedPlantId);
+    }, [selectedPlantId]);
+
+    const handleOpenSelectedEdit = useCallback(() => {
+        if (!selectedPlantId) {
+            return;
+        }
+        setDetailStartsInEditMode(true);
+        setDetailPlantId(selectedPlantId);
+    }, [selectedPlantId]);
+
+    const handleMoveSelectedPlant = useCallback(() => {
+        if (!selectedPlantId) {
+            return;
+        }
+        setMovingId(selectedPlantId);
+    }, [selectedPlantId]);
 
     const handleCardMove = useCallback(
         (id: string, x: number, y: number) => {
@@ -156,36 +204,68 @@ export default function Dashboard() {
             if (!sonde) {
                 return;
             }
-            const createdPlant = addPlantForSonde(PLANT_CATALOG[0], sonde.id);
+
+            let spawnX: number | undefined;
+            let spawnY: number | undefined;
+
+            const { width, height } = mapViewportSize;
+            const viewportCenterX = width / 2;
+            const viewportCenterY = height / 2;
+
+            if (width > 0 && height > 0 && scale.value > 0) {
+                const worldCenterX = (viewportCenterX - translateX.value) / scale.value;
+                const worldCenterY = (viewportCenterY - translateY.value) / scale.value;
+
+                spawnX = Math.max(0, Math.min(worldCenterX - 70, MAP_SIZE - 140));
+                spawnY = Math.max(0, Math.min(worldCenterY - 70, MAP_SIZE - 140));
+            }
+
+            const createdPlant = addPlantForSonde(
+                PLANT_CATALOG[0],
+                sonde.id,
+                spawnX !== undefined && spawnY !== undefined
+                    ? { x: spawnX, y: spawnY }
+                    : undefined,
+            );
             setMovingId(createdPlant.id);
+            setSelectedPlantId(createdPlant.id);
             setShowSondeList(false);
         },
-        [addPlantForSonde, addSonde],
+        [addPlantForSonde, addSonde, mapViewportSize, scale, translateX, translateY],
     );
 
     return (
         <GestureHandlerRootView style={styles.root}>
             <SafeAreaView style={styles.safe} edges={["top"]}>
                 <View style={styles.header}>
-                    <View style={styles.gardenSelector}>
-                        <Text style={styles.gardenName}>Mon jardin</Text>
-                    </View>
+                    <View style={styles.headerLine} />
                 </View>
-
-                {movingId && (
-                    <View style={styles.movingBanner}>
-                    <Text style={styles.movingBannerText}>
-                        Glissez la plante ou ses coins pour la
-                        déplacer/redimensionner
-                    </Text>
-                        <TouchableOpacity onPress={() => setMovingId(null)}>
-                            <Feather name="x" size={18} color="#FFF" />
-                        </TouchableOpacity>
-                    </View>
-                )}
 
                 <GestureDetector gesture={composedGesture}>
                     <Animated.View style={styles.mapContainer}>
+                        <View
+                            pointerEvents="none"
+                            style={styles.mapViewportMeasure}
+                            onLayout={(event) => {
+                                const { width, height } = event.nativeEvent.layout;
+                                setMapViewportSize({ width, height });
+                            }}
+                        />
+
+                        {movingId && (
+                            <View pointerEvents="box-none" style={styles.movingBannerWrapper}>
+                                <View style={styles.movingBanner}>
+                                    <Text style={styles.movingBannerText}>
+                                        Glissez la plante ou ses coins pour la
+                                        déplacer/redimensionner
+                                    </Text>
+                                    <TouchableOpacity onPress={() => setMovingId(null)}>
+                                        <Feather name="x" size={18} color={colors.text.onDark} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
+
                         <Animated.View style={[styles.map, animatedStyle]}>
                             <GrassLayer />
 
@@ -196,6 +276,7 @@ export default function Dashboard() {
                                     sondes={sondes}
                                     sensorData={sensorData}
                                     isMoving={movingId === plant.id}
+                                    isSelected={selectedPlantId === plant.id}
                                     mapScale={scale}
                                     isCardInteracting={isCardInteracting}
                                     onPress={handleCardPress}
@@ -241,9 +322,13 @@ export default function Dashboard() {
                 />
 
                 <PlantDetailModal
-                    plant={selectedPlant}
+                    plant={detailPlant}
                     sondes={sondes}
-                    onClose={() => setSelectedPlant(null)}
+                    startInEditMode={detailStartsInEditMode}
+                    onClose={() => {
+                        setDetailPlantId(null);
+                        setDetailStartsInEditMode(false);
+                    }}
                     onSave={handleEditSave}
                     onDelete={handlePlantDelete}
                     onLinkSonde={handleDetailLinkSonde}
@@ -251,10 +336,38 @@ export default function Dashboard() {
 
                 <SondeListModal
                     visible={showSondeList}
+                    plants={plants}
                     sondes={sondes}
                     onClose={() => setShowSondeList(false)}
                     onSelectProbe={handleSelectProbe}
                 />
+
+                {selectedPlant && (
+                    <View pointerEvents="box-none" style={styles.selectionActionsWrapper}>
+                        <View style={styles.selectionActionsRow}>
+                            <TouchableOpacity
+                                style={[styles.selectionActionButton, styles.selectionActionMoveButton]}
+                                onPress={handleMoveSelectedPlant}
+                            >
+                                <Feather name="move" size={16} color={colors.text.primary} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.selectionActionButton, styles.selectionActionEdit]}
+                                onPress={handleOpenSelectedEdit}
+                            >
+                                <Feather name="edit-2" size={16} color={colors.text.primary} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.selectionActionButton, styles.selectionActionPrimary]}
+                                onPress={handleOpenSelectedDetails}
+                            >
+                                <Feather name="info" size={16} color={colors.text.onDark} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
             </SafeAreaView>
         </GestureHandlerRootView>
     );
@@ -267,63 +380,62 @@ const styles = StyleSheet.create({
     },
     safe: {
         flex: 1,
-        backgroundColor: "#63FFA4",
+        backgroundColor: colors.background.gardenHeader,
     },
     header: {
-        backgroundColor: "#63FFA4",
-        paddingTop: 6,
-        paddingBottom: 18,
-        paddingHorizontal: 16,
-    },
-    gardenSelector: {
-        flexDirection: "row",
-        alignItems: "center",
+        backgroundColor: colors.brand.secondary,
+        height: 16,
         justifyContent: "center",
-        backgroundColor: "#FFF",
-        borderRadius: 16,
-        height: 46,
-        paddingHorizontal: 8,
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 2,
     },
-    gardenName: {
-        flex: 1,
-        textAlign: "center",
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#1B1B1B",
+    headerLine: {
+        height: 1,
+        backgroundColor: withAlpha(colors.text.onDark, 0.35),
     },
     movingBanner: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#2196F3",
+        backgroundColor: colors.brand.info,
         paddingVertical: 8,
         paddingHorizontal: 16,
         gap: 10,
+        borderRadius: 14,
+        shadowColor: colors.overlay.shadow,
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 4,
     },
     movingBannerText: {
-        color: "#FFF",
+        color: colors.text.onDark,
         fontSize: 13,
         fontWeight: "600",
+    },
+    movingBannerWrapper: {
+        position: "absolute",
+        top: 10,
+        left: 12,
+        right: 12,
+        zIndex: 20,
+        alignItems: "center",
     },
     mapContainer: {
         flex: 1,
         overflow: "hidden",
-        backgroundColor: "#7EC850",
+        backgroundColor: colors.background.gardenMap,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
+    },
+    mapViewportMeasure: {
+        ...StyleSheet.absoluteFillObject,
     },
     map: {
         width: MAP_SIZE,
         height: MAP_SIZE,
-        backgroundColor: "#7EC850",
+        backgroundColor: colors.background.gardenMap,
         position: "relative",
         borderWidth: 40,
-        borderColor: "#C4A46C",
+        borderColor: colors.background.mapBorder,
         borderRadius: 30,
     },
     emptyState: {
@@ -340,11 +452,43 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#FFF",
+        color: colors.text.onDark,
         marginBottom: 4,
     },
     emptySubtext: {
         fontSize: 13,
-        color: "rgba(255,255,255,0.8)",
+        color: withAlpha(colors.text.onDark, 0.8),
+    },
+    selectionActionsWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: "flex-end",
+        alignItems: "center",
+        paddingBottom: 108,
+        pointerEvents: "box-none",
+    },
+    selectionActionsRow: {
+        flexDirection: "row",
+        gap: 10,
+    },
+    selectionActionButton: {
+        alignItems: "center",
+        justifyContent: "center",
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        shadowColor: colors.overlay.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.14,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    selectionActionMoveButton: {
+        backgroundColor: colors.surface.raised,
+    },
+    selectionActionEdit: {
+        backgroundColor: colors.surface.raised,
+    },
+    selectionActionPrimary: {
+        backgroundColor: withAlpha(colors.brand.secondary, 0.96),
     },
 });

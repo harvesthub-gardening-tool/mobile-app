@@ -11,7 +11,7 @@ import {
     ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import type { PlacedSonde } from "../../types/garden";
+import type { PlacedPlant, PlacedSonde } from "../../types/garden";
 import { listHubs } from "../../services/authService";
 import { listProbesForHubName, type ProbeSnapshot } from "../../services/gardenService";
 
@@ -19,6 +19,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type SondeListModalProps = {
     visible: boolean;
+    plants: PlacedPlant[];
     sondes: PlacedSonde[];
     onClose: () => void;
     onSelectProbe: (probe: { nodeId: string; hubName: string }) => void;
@@ -26,6 +27,7 @@ type SondeListModalProps = {
 
 export function SondeListModal({
     visible,
+    plants,
     sondes,
     onClose,
     onSelectProbe,
@@ -103,9 +105,23 @@ export function SondeListModal({
         onSelectProbe({ nodeId, hubName: selectedHubName ?? "Hub" });
     };
 
-    const linkedNodeIds = new Set(
-        sondes
-            .map((s) => s.nodeId)
+    const sondeNodeIdBySondeId = new Map<string, string>(
+        sondes.map((sonde) => [sonde.id, sonde.nodeId]),
+    );
+
+    const displayedProbeNodeIds = new Set(
+        plants
+            .map((plant) => {
+                if (!plant.sondeId) {
+                    return null;
+                }
+                const nodeIdFromSonde = sondeNodeIdBySondeId.get(plant.sondeId);
+                if (nodeIdFromSonde) {
+                    return nodeIdFromSonde;
+                }
+                const fallbackByNode = sondes.find((s) => s.nodeId === plant.sondeId);
+                return fallbackByNode?.nodeId ?? null;
+            })
             .filter((nodeId): nodeId is string => typeof nodeId === "string" && nodeId.length > 0),
     );
 
@@ -177,7 +193,7 @@ export function SondeListModal({
                                 </Text>
                             ) : (
                                 availableProbes.map((probe) => {
-                                    const alreadyLinked = linkedNodeIds.has(probe.nodeId);
+                                    const alreadyLinked = displayedProbeNodeIds.has(probe.nodeId);
                                     return (
                                         <TouchableOpacity
                                             key={probe.nodeId}
