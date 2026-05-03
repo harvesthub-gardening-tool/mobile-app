@@ -153,7 +153,7 @@ export default function BottomMenu() {
                         <Pressable
                             key={item.href}
                             style={styles.item}
-                            onPress={() => router.push(item.href)}
+                            onPress={() => router.navigate(item.href)}
                         >
                             <MenuIcon item={item} active={active} />
                         </Pressable>
