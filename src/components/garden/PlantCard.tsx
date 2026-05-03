@@ -19,7 +19,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import type { PlacedPlant, PlacedSonde } from "../../types/garden";
-import { MIN_CARD_SIZE } from "../../constants/garden";
+import { MIN_CARD_SIZE, DEFAULT_CELL } from "../../constants/garden";
 import { getSondeDisplayName } from "../../utils/sondeDisplay";
 import type { ProbeSensorData } from "../../hooks/useSensorData";
 import { colors, withAlpha } from "../../theme";
@@ -88,6 +88,20 @@ export const PlantCard = memo(function PlantCard({
     summary?.soilTemperature !== undefined
       ? `${summary.soilTemperature.toFixed(1)}°`
       : "--";
+
+  const sizeRatio = Math.min(plant.width, plant.height) / DEFAULT_CELL;
+  const emojiFS        = Math.max(16, Math.round(64 * sizeRatio));
+  const sensorFS       = Math.max(6,  Math.round(14 * sizeRatio));
+  const sensorIconSz   = Math.max(4,  Math.round(9  * sizeRatio));
+  const headerFS       = Math.max(5,  Math.round(12 * sizeRatio));
+  const headerHeight   = headerFS + 6;
+  const outlineOff     = Math.max(0.5, sizeRatio * 0.8);
+  const badgeGap       = Math.max(2,  Math.round(4  * sizeRatio));
+  const badgeRowGap    = Math.max(2,  Math.round(4  * sizeRatio));
+  const badgePadX      = Math.max(3,  Math.round(6  * sizeRatio));
+  const badgePadY      = Math.max(1,  Math.round(2  * sizeRatio));
+  const handleSize     = Math.max(24, Math.round(24 * sizeRatio));
+  const handleHalf     = handleSize / 2;
 
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
@@ -205,7 +219,7 @@ export const PlantCard = memo(function PlantCard({
     top: plant.y + offsetY.value,
     width: Math.max(MIN_CARD_SIZE, plant.width + offsetW.value),
     height:
-      Math.max(MIN_CARD_SIZE, plant.height + offsetH.value) + HEADER_HEIGHT,
+      Math.max(MIN_CARD_SIZE, plant.height + offsetH.value) + headerHeight,
     borderColor: isMoving
       ? colors.brand.info
       : isSelected
@@ -219,7 +233,7 @@ export const PlantCard = memo(function PlantCard({
   }));
 
   const handlePress = useCallback(() => onPress(plant.id), [onPress, plant.id]);
-  const handleHitSlop = (HANDLE_HIT - HANDLE_SIZE) / 2;
+  const handleHitSlop = Math.round(handleSize * 0.4);
 
   const cardContent = (
     <>
@@ -228,13 +242,14 @@ export const PlantCard = memo(function PlantCard({
         style={styles.cardBackground}
         imageStyle={styles.cardBackgroundImage}
       >
-        <View style={styles.topRow}>
+        <View style={[styles.topRow, { height: headerHeight }]}>
           {probeDisplayName && (
             <View style={styles.headerProbeTextWrap}>
               <Text
                 style={[
                   styles.headerProbeName,
                   styles.headerProbeNameOutlineLeft,
+                  { fontSize: headerFS, left: -outlineOff },
                 ]}
                 numberOfLines={1}
               >
@@ -244,6 +259,7 @@ export const PlantCard = memo(function PlantCard({
                 style={[
                   styles.headerProbeName,
                   styles.headerProbeNameOutlineRight,
+                  { fontSize: headerFS, left: outlineOff },
                 ]}
                 numberOfLines={1}
               >
@@ -253,6 +269,7 @@ export const PlantCard = memo(function PlantCard({
                 style={[
                   styles.headerProbeName,
                   styles.headerProbeNameOutlineTop,
+                  { fontSize: headerFS, top: -outlineOff },
                 ]}
                 numberOfLines={1}
               >
@@ -262,12 +279,13 @@ export const PlantCard = memo(function PlantCard({
                 style={[
                   styles.headerProbeName,
                   styles.headerProbeNameOutlineBottom,
+                  { fontSize: headerFS, top: outlineOff },
                 ]}
                 numberOfLines={1}
               >
                 {probeDisplayName}
               </Text>
-              <Text style={styles.headerProbeName} numberOfLines={1}>
+              <Text style={[styles.headerProbeName, { fontSize: headerFS }]} numberOfLines={1}>
                 {probeDisplayName}
               </Text>
             </View>
@@ -276,47 +294,47 @@ export const PlantCard = memo(function PlantCard({
 
         <View style={styles.mainContainer}>
           <View style={styles.mainSectionAir}>
-            <View style={styles.airDataRow}>
-              <View style={[styles.sensorBadge, styles.sensorBadgeTemp]}>
+            <View style={[styles.airDataRow, { gap: badgeRowGap }]}>
+              <View style={[styles.sensorBadge, styles.sensorBadgeTemp, { gap: badgeGap, paddingHorizontal: badgePadX, paddingVertical: badgePadY }]}>
                 <Feather
                   name="thermometer"
-                  size={9}
+                  size={sensorIconSz}
                   color={colors.text.onPrimary}
                 />
-                <Text style={styles.sensorValue}>{tempValue}</Text>
+                <Text style={[styles.sensorValue, { fontSize: sensorFS }]}>{tempValue}</Text>
               </View>
-              <View style={[styles.sensorBadge, styles.sensorBadgeHumid]}>
+              <View style={[styles.sensorBadge, styles.sensorBadgeHumid, { gap: badgeGap, paddingHorizontal: badgePadX, paddingVertical: badgePadY }]}>
                 <Feather
                   name="droplet"
-                  size={9}
+                  size={sensorIconSz}
                   color={colors.text.onPrimary}
                 />
-                <Text style={styles.sensorValue}>{humidValue}</Text>
+                <Text style={[styles.sensorValue, { fontSize: sensorFS }]}>{humidValue}</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.mainSectionPlant}>
-            <Text style={styles.emoji}>{plant.plantType.emoji}</Text>
+            <Text style={[styles.emoji, { fontSize: emojiFS }]}>{plant.plantType.emoji}</Text>
           </View>
 
           <View style={styles.mainSectionSoil}>
-            <View style={styles.soilDataRow}>
-              <View style={[styles.sensorBadge, styles.sensorBadgeTemp]}>
+            <View style={[styles.soilDataRow, { gap: badgeRowGap }]}>
+              <View style={[styles.sensorBadge, styles.sensorBadgeTemp, { gap: badgeGap, paddingHorizontal: badgePadX, paddingVertical: badgePadY }]}>
                 <Feather
                   name="thermometer"
-                  size={9}
+                  size={sensorIconSz}
                   color={colors.text.onPrimary}
                 />
-                <Text style={styles.sensorValue}>{soilTempValue}</Text>
+                <Text style={[styles.sensorValue, { fontSize: sensorFS }]}>{soilTempValue}</Text>
               </View>
-              <View style={[styles.sensorBadge, styles.sensorBadgeHumid]}>
+              <View style={[styles.sensorBadge, styles.sensorBadgeHumid, { gap: badgeGap, paddingHorizontal: badgePadX, paddingVertical: badgePadY }]}>
                 <Feather
                   name="cloud-rain"
-                  size={9}
+                  size={sensorIconSz}
                   color={colors.text.onPrimary}
                 />
-                <Text style={styles.sensorValue}>{soilHumidValue}</Text>
+                <Text style={[styles.sensorValue, { fontSize: sensorFS }]}>{soilHumidValue}</Text>
               </View>
             </View>
           </View>
@@ -328,25 +346,25 @@ export const PlantCard = memo(function PlantCard({
           <GestureDetector gesture={topLeftGesture}>
             <Animated.View
               hitSlop={handleHitSlop}
-              style={[styles.handle, styles.handleTL]}
+              style={[styles.handle, { width: handleSize, height: handleSize, borderRadius: handleHalf, top: -handleHalf, left: -handleHalf }]}
             />
           </GestureDetector>
           <GestureDetector gesture={topRightGesture}>
             <Animated.View
               hitSlop={handleHitSlop}
-              style={[styles.handle, styles.handleTR]}
+              style={[styles.handle, { width: handleSize, height: handleSize, borderRadius: handleHalf, top: -handleHalf, right: -handleHalf }]}
             />
           </GestureDetector>
           <GestureDetector gesture={bottomLeftGesture}>
             <Animated.View
               hitSlop={handleHitSlop}
-              style={[styles.handle, styles.handleBL]}
+              style={[styles.handle, { width: handleSize, height: handleSize, borderRadius: handleHalf, bottom: -handleHalf, left: -handleHalf }]}
             />
           </GestureDetector>
           <GestureDetector gesture={bottomRightGesture}>
             <Animated.View
               hitSlop={handleHitSlop}
-              style={[styles.handle, styles.handleBR]}
+              style={[styles.handle, { width: handleSize, height: handleSize, borderRadius: handleHalf, bottom: -handleHalf, right: -handleHalf }]}
             />
           </GestureDetector>
         </>
@@ -374,7 +392,7 @@ export const PlantCard = memo(function PlantCard({
           left: plant.x,
           top: plant.y,
           width: plant.width,
-          height: plant.height + HEADER_HEIGHT,
+          height: plant.height + headerHeight,
         },
         animatedCardStyle,
       ]}
