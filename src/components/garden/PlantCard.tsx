@@ -10,7 +10,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedProps,
   useDerivedValue,
   runOnJS,
   withRepeat,
@@ -284,8 +283,19 @@ export const PlantCard = memo(function PlantCard({
     fontSize: Math.max(16, Math.round(32 * animSizeRatio.value)),
   }));
 
-  const animIconProps = useAnimatedProps(() => ({
-    size: Math.max(4, Math.round(9 * animSizeRatio.value)),
+  const animIconContainerStyle = useAnimatedStyle(() => {
+    const sz = Math.max(4, Math.round(9 * animSizeRatio.value));
+    return {
+      width: sz,
+      height: sz,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      overflow: "visible" as const,
+    };
+  });
+
+  const animIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: animSizeRatio.value }],
   }));
 
   const animHandleTLStyle = useAnimatedStyle(() => {
@@ -381,11 +391,14 @@ export const PlantCard = memo(function PlantCard({
               <Animated.View
                 style={[styles.sensorBadge, styles.sensorBadgeTemp, animBadgeStyle]}
               >
-                <AnimatedFeather
-                  name="thermometer"
-                  color={colors.text.onPrimary}
-                  animatedProps={animIconProps}
-                />
+                <Animated.View style={animIconContainerStyle}>
+                  <AnimatedFeather
+                    name="thermometer"
+                    color={colors.text.onPrimary}
+                    size={9}
+                    style={animIconStyle}
+                  />
+                </Animated.View>
                 <Animated.Text style={[styles.sensorValue, animSensorTextStyle]}>
                   {tempValue}
                 </Animated.Text>
@@ -393,11 +406,14 @@ export const PlantCard = memo(function PlantCard({
               <Animated.View
                 style={[styles.sensorBadge, styles.sensorBadgeHumid, animBadgeStyle]}
               >
-                <AnimatedFeather
-                  name="droplet"
-                  color={colors.text.onPrimary}
-                  animatedProps={animIconProps}
-                />
+                <Animated.View style={animIconContainerStyle}>
+                  <AnimatedFeather
+                    name="droplet"
+                    color={colors.text.onPrimary}
+                    size={9}
+                    style={animIconStyle}
+                  />
+                </Animated.View>
                 <Animated.Text style={[styles.sensorValue, animSensorTextStyle]}>
                   {humidValue}
                 </Animated.Text>
@@ -416,11 +432,14 @@ export const PlantCard = memo(function PlantCard({
               <Animated.View
                 style={[styles.sensorBadge, styles.sensorBadgeTemp, animBadgeStyle]}
               >
-                <AnimatedFeather
-                  name="thermometer"
-                  color={colors.text.onPrimary}
-                  animatedProps={animIconProps}
-                />
+                <Animated.View style={animIconContainerStyle}>
+                  <AnimatedFeather
+                    name="thermometer"
+                    color={colors.text.onPrimary}
+                    size={9}
+                    style={animIconStyle}
+                  />
+                </Animated.View>
                 <Animated.Text style={[styles.sensorValue, animSensorTextStyle]}>
                   {soilTempValue}
                 </Animated.Text>
@@ -428,11 +447,14 @@ export const PlantCard = memo(function PlantCard({
               <Animated.View
                 style={[styles.sensorBadge, styles.sensorBadgeHumid, animBadgeStyle]}
               >
-                <AnimatedFeather
-                  name="cloud-rain"
-                  color={colors.text.onPrimary}
-                  animatedProps={animIconProps}
-                />
+                <Animated.View style={animIconContainerStyle}>
+                  <AnimatedFeather
+                    name="cloud-rain"
+                    color={colors.text.onPrimary}
+                    size={9}
+                    style={animIconStyle}
+                  />
+                </Animated.View>
                 <Animated.Text style={[styles.sensorValue, animSensorTextStyle]}>
                   {soilHumidValue}
                 </Animated.Text>
