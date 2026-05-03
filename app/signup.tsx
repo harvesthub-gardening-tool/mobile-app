@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
-import { useAuth } from "./context/AuthContext";
-import { colors, withAlpha } from "./theme";
+import { useAuth } from "@/context/AuthContext";
+import { colors, withAlpha } from "@/theme";
 
 export default function Signup() {
     const [email, setEmail] = useState("");

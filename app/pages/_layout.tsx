@@ -1,7 +1,7 @@
 import { Slot } from "expo-router";
 import { View, StyleSheet } from "react-native";
-import BottomMenu from "../components/BottomMenu";
-import { colors } from "../theme";
+import BottomMenu from "@/components/BottomMenu";
+import { colors } from "@/theme";
 
 export default function PagesLayout() {
     return (

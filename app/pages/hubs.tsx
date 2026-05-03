@@ -11,8 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useHubs } from "../hooks/useHubs";
-import { colors, withAlpha } from "../theme";
+import { useHubs } from "@/hooks/useHubs";
+import { colors, withAlpha } from "@/theme";
 
 function formatDate(ts: bigint): string {
     const date = new Date(Number(ts));

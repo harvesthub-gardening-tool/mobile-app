@@ -1,22 +1,26 @@
 import { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Animated, Easing, Dimensions, PanResponder, Platform } from "react-native";
+import { View, StyleSheet, Animated, Easing, Dimensions, PanResponder, Platform, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useBluetoothSetup } from "./hooks/useBluetoothSetup";
-import { useWifiSetup } from "./hooks/useWifiSetup";
-import { IntroStep } from "./components/hub-setup/IntroStep";
-import { BluetoothStep } from "./components/hub-setup/BluetoothStep";
-import { WifiStep } from "./components/hub-setup/WifiStep";
-import { SuccessStep } from "./components/hub-setup/SuccessStep";
-import { STEPS, type Step } from "./types/hub-setup";
+import { useBluetoothSetup } from "@/hooks/useBluetoothSetup";
+import { useWifiSetup } from "@/hooks/useWifiSetup";
+import { revokeHubByDeviceId } from "@/services/authService";
+import { IntroStep } from "@/components/hub-setup/IntroStep";
+import { BluetoothStep } from "@/components/hub-setup/BluetoothStep";
+import { WifiStep } from "@/components/hub-setup/WifiStep";
+import { SuccessStep } from "@/components/hub-setup/SuccessStep";
+import { STEPS, type Step, type HubSetupParams } from "@/types/hub-setup";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SETUP_RESET_DELAY_MS = 700;
 
 export default function HubSetupScreen() {
-    const { hub_name } = useLocalSearchParams<{ hub_name: string }>();
+    const { hub_name, hub_uuid, hub_secret } = useLocalSearchParams<HubSetupParams>();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const hubName = hub_name ?? "HarvestHub";
+    const hubUuid = hub_uuid ?? "";
+    const hubSecret = hub_secret ?? "";
 
     const [step, setStep] = useState<Step>("intro");
     const stepRef = useRef<Step>("intro");
@@ -42,11 +46,45 @@ export default function HubSetupScreen() {
                 toValue: SCREEN_HEIGHT, duration: 280, useNativeDriver: true,
                 easing: Easing.in(Easing.ease),
             }),
-        ]).start(() => router.back());
+        ]).start(() => {
+            if (router.canGoBack()) {
+                router.back();
+                return;
+            }
+
+            router.replace("/pages/dashboard");
+        });
     };
 
-    const { btSteps, btError, runBluetoothFlow } = useBluetoothSetup(hubName, () => goToStep("wifi"));
-    const wifi = useWifiSetup(() => goToStep("succes"));
+    const { btSteps, btError, runBluetoothFlow, sendWifiCredentials, markSetupRolledBack } = useBluetoothSetup(
+        hubName,
+        hubUuid,
+        hubSecret,
+        () => goToStep("wifi"),
+    );
+    const handleSetupFailure = async (error: unknown) => {
+        try {
+            await revokeHubByDeviceId(hubUuid);
+        } catch {
+            throw new Error(
+                "La configuration du hub a échoué et l'association n'a pas pu être réinitialisée. Vérifiez votre connexion puis réessayez.",
+            );
+        }
+        const message =
+            (error as Error)?.message
+                ?? "La configuration du hub a échoué. L'association a été réinitialisée.";
+        wifi.setWifiError(message);
+        setTimeout(() => {
+            markSetupRolledBack(`${message} L'association a été réinitialisée, recommencez l'installation.`);
+            goToStep("bluetooth");
+        }, SETUP_RESET_DELAY_MS);
+    };
+
+    const wifi = useWifiSetup(
+        () => goToStep("succes"),
+        sendWifiCredentials,
+        handleSetupFailure,
+    );
 
     useEffect(() => {
         Animated.parallel([
@@ -102,6 +140,10 @@ export default function HubSetupScreen() {
     return (
         <View style={styles.root}>
             <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
+            <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={() => { if (stepRef.current !== "bluetooth") handleDismiss(); }}
+            />
             <View>
                 <Animated.View
                     style={[
@@ -112,8 +154,9 @@ export default function HubSetupScreen() {
                             marginBottom: -insets.bottom,
                         },
                     ]}
+                    {...panResponder.panHandlers}
                 >
-                    <View style={styles.handleArea} {...panResponder.panHandlers}>
+                    <View style={styles.handleArea}>
                         <View style={styles.handleBar} />
                     </View>
                     <View style={styles.stepDots}>

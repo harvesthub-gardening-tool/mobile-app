@@ -8,11 +8,11 @@ import {
 } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
-import { useGardenStorage } from "../hooks/useGardenStorage";
-import { useMapGestures } from "../hooks/useMapGestures";
-import { useSensorData } from "../hooks/useSensorData";
-import { MAP_SIZE, MIN_CARD_SIZE, PLANT_CATALOG } from "../constants/garden";
-import type { PlacedPlant, PlantType } from "../types/garden";
+import { useGardenStorage } from "@/hooks/useGardenStorage";
+import { useMapGestures } from "@/hooks/useMapGestures";
+import { useSensorData } from "@/hooks/useSensorData";
+import { MAP_SIZE, MIN_CARD_SIZE, PLANT_CATALOG } from "@/constants/garden";
+import type { PlacedPlant, PlantType } from "@/types/garden";
 import {
   GrassLayer,
   PlantCard,
@@ -21,8 +21,8 @@ import {
   CatalogModal,
   PlantDetailModal,
   SondeListModal,
-} from "../components/garden";
-import { colors, withAlpha } from "../theme";
+} from "@/components/garden";
+import { colors, withAlpha } from "@/theme";
 
 export default function Dashboard() {
   const [mapViewportSize, setMapViewportSize] = useState({ width: 0, height: 0 });
