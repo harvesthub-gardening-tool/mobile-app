@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import type { WifiNetwork } from "../../types/hub-setup";
+import { colors, withAlpha } from "../../theme/colors";
 
 function getSignalBars(level: number): 1 | 2 | 3 | 4 {
     if (level >= -50) return 4;
@@ -46,13 +47,13 @@ function WifiNetworkRow({
             <MaterialCommunityIcons
                 name={wifiIcon(bars) as React.ComponentProps<typeof MaterialCommunityIcons>["name"]}
                 size={22}
-                color={selected ? "#63FFA4" : "#888"}
+                color={selected ? colors.brand.accent : colors.text.subtle}
             />
-            <Text style={[styles.networkName, selected && { color: "#1B1B1B" }]} numberOfLines={1}>
+            <Text style={[styles.networkName, selected && { color: colors.text.primary }]} numberOfLines={1}>
                 {network.SSID}
             </Text>
-            {secured && <Feather name="lock" size={14} color={selected ? "#63FFA4" : "#CCC"} />}
-            {selected && <Feather name="check-circle" size={18} color="#63FFA4" />}
+            {secured && <Feather name="lock" size={14} color={selected ? colors.brand.accent : colors.text.subtle} />}
+            {selected && <Feather name="check-circle" size={18} color={colors.brand.accent} />}
         </TouchableOpacity>
     );
 }
@@ -106,7 +107,7 @@ export function WifiStep({
                     <View style={{ flex: 1 }}>
                         {isScanningWifi ? (
                             <View style={styles.scanningWrap}>
-                                <ActivityIndicator color="#63FFA4" />
+                                <ActivityIndicator color={colors.brand.accent} />
                                 <Text style={styles.scanningText}>Scan des réseaux…</Text>
                             </View>
                         ) : (
@@ -137,7 +138,7 @@ export function WifiStep({
                         <TextInput
                             style={styles.input}
                             placeholder="ex : Freebox-ABCD"
-                            placeholderTextColor="#BBB"
+                            placeholderTextColor={colors.text.subtle}
                             value={manualSsid}
                             onChangeText={setManualSsid}
                             autoCapitalize="none"
@@ -153,7 +154,7 @@ export function WifiStep({
                             <TextInput
                                 style={[styles.input, { flex: 1 }]}
                                 placeholder="Mot de passe WiFi"
-                                placeholderTextColor="#BBB"
+                                placeholderTextColor={colors.text.subtle}
                                 value={wifiPassword}
                                 onChangeText={(t) => { setWifiPassword(t); setWifiError(null); }}
                                 secureTextEntry={!showPassword}
@@ -161,7 +162,7 @@ export function WifiStep({
                                 autoCorrect={false}
                             />
                             <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((v) => !v)}>
-                                <Feather name={showPassword ? "eye-off" : "eye"} size={18} color="#999" />
+                                <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={colors.text.subtle} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -171,7 +172,7 @@ export function WifiStep({
             <View style={{ gap: 10 }}>
                 {wifiError && (
                     <View style={styles.errorBox}>
-                        <Feather name="alert-circle" size={16} color="#FF4444" />
+                        <Feather name="alert-circle" size={16} color={colors.state.danger} />
                         <Text style={styles.errorText}>{wifiError}</Text>
                     </View>
                 )}
@@ -182,13 +183,13 @@ export function WifiStep({
                 >
                     {isConnectingWifi ? (
                         <>
-                            <ActivityIndicator size="small" color="#1B1B1B" />
+                            <ActivityIndicator size="small" color={colors.text.onPrimary} />
                             <Text style={styles.btnText}>Connexion…</Text>
                         </>
                     ) : (
                         <>
                             <Text style={styles.btnText}>Se connecter</Text>
-                            <Feather name="wifi" size={18} color="#1B1B1B" />
+                            <Feather name="wifi" size={18} color={colors.text.onPrimary} />
                         </>
                     )}
                 </TouchableOpacity>
@@ -198,39 +199,39 @@ export function WifiStep({
 }
 
 const styles = StyleSheet.create({
-    title: { fontSize: 22, fontWeight: "700", color: "#1B1B1B", textAlign: "center", marginBottom: 8 },
-    subtitle: { fontSize: 14, color: "#666", textAlign: "center", lineHeight: 20 },
+    title: { fontSize: 22, fontWeight: "700", color: colors.text.primary, textAlign: "center", marginBottom: 8 },
+    subtitle: { fontSize: 14, color: colors.text.muted, textAlign: "center", lineHeight: 20 },
     scanningWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-    scanningText: { fontSize: 14, color: "#999" },
+    scanningText: { fontSize: 14, color: colors.text.subtle },
     networkRow: {
         flexDirection: "row", alignItems: "center", gap: 10,
         paddingVertical: 12, paddingHorizontal: 12,
-        borderRadius: 12, marginBottom: 4, backgroundColor: "#F8F8F8",
+        borderRadius: 12, marginBottom: 4, backgroundColor: colors.surface.low,
     },
-    networkRowSelected: { backgroundColor: "#F0FFF7", borderWidth: 1.5, borderColor: "#63FFA4" },
-    networkName: { flex: 1, fontSize: 14, fontWeight: "600", color: "#1B1B1B" },
-    emptyWifi: { textAlign: "center", color: "#BBB", marginTop: 24, fontSize: 14 },
-    inputLabel: { fontSize: 13, fontWeight: "600", color: "#555", marginBottom: 6 },
+    networkRowSelected: { backgroundColor: withAlpha(colors.brand.accent, 0.12), borderWidth: 1.5, borderColor: colors.brand.accent },
+    networkName: { flex: 1, fontSize: 14, fontWeight: "600", color: colors.text.primary },
+    emptyWifi: { textAlign: "center", color: colors.text.subtle, marginTop: 24, fontSize: 14 },
+    inputLabel: { fontSize: 13, fontWeight: "600", color: colors.text.muted, marginBottom: 6 },
     input: {
-        borderWidth: 1, borderColor: "#DADADA", borderRadius: 10,
+        borderWidth: 1, borderColor: colors.border.subtle, borderRadius: 10,
         paddingHorizontal: 14, paddingVertical: 12,
-        fontSize: 15, color: "#1B1B1B", backgroundColor: "#FAFAFA",
+        fontSize: 15, color: colors.text.primary, backgroundColor: colors.surface.lowest,
     },
     passwordRow: { flexDirection: "row", alignItems: "center", gap: 8 },
     eyeBtn: {
-        width: 44, height: 46, borderWidth: 1, borderColor: "#DADADA",
+        width: 44, height: 46, borderWidth: 1, borderColor: colors.border.subtle,
         borderRadius: 10, justifyContent: "center", alignItems: "center",
-        backgroundColor: "#FAFAFA",
+        backgroundColor: colors.surface.lowest,
     },
     btn: {
         flexDirection: "row", alignItems: "center", justifyContent: "center",
-        gap: 8, backgroundColor: "#63FFA4", borderRadius: 999, paddingVertical: 15,
+        gap: 8, backgroundColor: colors.brand.accent, borderRadius: 999, paddingVertical: 15,
     },
     btnDisabled: { opacity: 0.45 },
-    btnText: { fontSize: 16, fontWeight: "700", color: "#1B1B1B" },
+    btnText: { fontSize: 16, fontWeight: "700", color: colors.text.onPrimary },
     errorBox: {
         flexDirection: "row", alignItems: "center", gap: 8,
-        backgroundColor: "#FFEBEE", borderRadius: 10, padding: 12,
+        backgroundColor: colors.state.dangerSoft, borderRadius: 10, padding: 12,
     },
-    errorText: { flex: 1, fontSize: 13, color: "#FF4444" },
+    errorText: { flex: 1, fontSize: 13, color: colors.state.danger },
 });
