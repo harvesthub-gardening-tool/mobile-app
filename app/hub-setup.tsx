@@ -10,6 +10,7 @@ import { BluetoothStep } from "@/components/hub-setup/BluetoothStep";
 import { WifiStep } from "@/components/hub-setup/WifiStep";
 import { SuccessStep } from "@/components/hub-setup/SuccessStep";
 import { STEPS, type Step, type HubSetupParams } from "@/types/hub-setup";
+import { colors, withAlpha } from "@/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SETUP_RESET_DELAY_MS = 700;
@@ -197,25 +198,25 @@ export default function HubSetupScreen() {
 
 const styles = StyleSheet.create({
     root: { flex: 1, justifyContent: "flex-end" },
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: withAlpha(colors.base.black, 0.45) },
     card: {
         height: SCREEN_HEIGHT * 0.72,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface.lowest,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingTop: 12,
         paddingHorizontal: 24,
         paddingBottom: 24,
-        shadowColor: "#000",
+        shadowColor: colors.base.black,
         shadowOpacity: 0.15,
         shadowRadius: 24,
         shadowOffset: { width: 0, height: -6 },
         elevation: 10,
     },
     handleArea: { alignSelf: "stretch", alignItems: "center", paddingVertical: 8, marginBottom: 8 },
-    handleBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#E0E0E0" },
+    handleBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border.subtle },
     stepDots: { flexDirection: "row", justifyContent: "center", gap: 6, marginBottom: 20 },
     dot: { height: 5, borderRadius: 2.5 },
-    dotActive: { width: 24, backgroundColor: "#63FFA4" },
-    dotInactive: { width: 8, backgroundColor: "#E0E0E0" },
+    dotActive: { width: 24, backgroundColor: colors.brand.primary },
+    dotInactive: { width: 8, backgroundColor: colors.border.subtle },
 });
