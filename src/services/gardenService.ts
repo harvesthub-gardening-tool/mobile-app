@@ -1,9 +1,6 @@
 import { ConnectError, Code } from "@connectrpc/connect";
 import { API_BASE_URL, gardenClient, getStoredToken } from "./api";
-import type {
-    InsertSensorDataResponse,
-    SensorSummary,
-} from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
+import type { InsertSensorDataResponse } from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
 
 function translateError(err: unknown): string {
     const connectErr = ConnectError.from(err);
@@ -39,19 +36,6 @@ export async function insertSensorData(data: {
     }
 }
 
-export async function getSummary(
-    nodeId?: string,
-    hours?: number,
-    hubId?: string,
-): Promise<SensorSummary[]> {
-    try {
-        const res = await gardenClient.getSummary({ nodeId, hours, hubId });
-        return res.summaries;
-    } catch (err: unknown) {
-        throw new Error(translateError(err));
-    }
-}
-
 type RawProbe = {
     nodeId?: string;
     node_id?: string;
@@ -65,14 +49,57 @@ type ListProbesForHubNameResponse = {
     probes?: RawProbe[];
 };
 
+type RawSensorReading = {
+    nodeId?: string;
+    node_id?: string;
+    time?: number | string;
+    airTemperature?: number;
+    air_temperature?: number;
+    airPressure?: number;
+    air_pressure?: number;
+    airHumidity?: number;
+    air_humidity?: number;
+    soilTemperature?: number;
+    soil_temperature?: number;
+    soilHumidity?: number;
+    soil_humidity?: number;
+};
+
+type GetLastResponse = {
+    reading?: RawSensorReading;
+};
+
 export type ProbeSnapshot = {
     nodeId: string;
     airTemperature?: number;
     airHumidity?: number;
 };
 
+export type LastSensorReading = {
+    nodeId: string;
+    time?: number;
+    airTemperature?: number;
+    airPressure?: number;
+    airHumidity?: number;
+    soilTemperature?: number;
+    soilHumidity?: number;
+};
+
 function readOptionalNumber(value: unknown): number | undefined {
     return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function readOptionalTimestamp(value: unknown): number | undefined {
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : undefined;
+    }
+
+    if (typeof value === "string") {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    }
+
+    return undefined;
 }
 
 export async function listProbesForHubName(hubName: string): Promise<ProbeSnapshot[]> {
@@ -115,4 +142,48 @@ export async function listProbesForHubName(hubName: string): Promise<ProbeSnapsh
         });
     }
     return snapshots;
+}
+
+export async function getLast(nodeId: string): Promise<LastSensorReading | null> {
+    const token = await getStoredToken();
+    if (!token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/garden.v2.GardenService/GetLast`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ node_id: nodeId }),
+        },
+    );
+
+    if (response.status === 404) {
+        return null;
+    }
+
+    if (!response.ok) {
+        throw new Error("Impossible de charger la dernière lecture de la sonde.");
+    }
+
+    const payload = (await response.json()) as GetLastResponse;
+    const reading = payload.reading;
+    const readingNodeId = reading?.nodeId ?? reading?.node_id;
+    if (typeof readingNodeId !== "string" || readingNodeId.length === 0) {
+        return null;
+    }
+
+    return {
+        nodeId: readingNodeId,
+        time: readOptionalTimestamp(reading?.time),
+        airTemperature: readOptionalNumber(reading?.airTemperature ?? reading?.air_temperature),
+        airPressure: readOptionalNumber(reading?.airPressure ?? reading?.air_pressure),
+        airHumidity: readOptionalNumber(reading?.airHumidity ?? reading?.air_humidity),
+        soilTemperature: readOptionalNumber(reading?.soilTemperature ?? reading?.soil_temperature),
+        soilHumidity: readOptionalNumber(reading?.soilHumidity ?? reading?.soil_humidity),
+    };
 }

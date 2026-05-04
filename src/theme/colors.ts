@@ -20,8 +20,8 @@ export const colors = {
     secondaryFixed: "#e8dfce",
     tertiaryContainer: "#d5a24a",
     onTertiaryContainer: "#173124",
-    accent: "#63FFA4",
-    info: "#2f7bd6",
+    accent: "#173124",
+    info: "#3a6b8a",
   },
   surface: {
     base: "#f8faf8",
@@ -36,7 +36,7 @@ export const colors = {
     warningSoft: "#fff8e1",
     danger: "#c23939",
     dangerSoft: "#ffebee",
-    infoSoft: "#e3f2fd",
+    infoSoft: "#e9f1f6",
   },
   border: {
     subtle: "#c2c8c2",
@@ -46,13 +46,13 @@ export const colors = {
     shadow: "rgba(25,28,27,0.06)",
   },
   garden: {
-    map: "#7ec850",
-    mapBorder: "#c4a46c",
+    map: "#5e7a57",
+    mapBorder: "#ad9579",
   },
 } as const;
 
 function normalizeHex(hex: string): string {
-  'worklet';
+  "worklet";
   const value = hex.replace("#", "").trim();
   if (value.length === 3) {
     return `${value[0]}${value[0]}${value[1]}${value[1]}${value[2]}${value[2]}`;
@@ -61,7 +61,7 @@ function normalizeHex(hex: string): string {
 }
 
 export function withAlpha(hexColor: string, alpha: number): string {
-  'worklet';
+  "worklet";
   const hex = normalizeHex(hexColor);
   if (hex.length !== 6) {
     return hexColor;

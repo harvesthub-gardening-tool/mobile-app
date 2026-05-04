@@ -8,8 +8,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAuth } from "../context/AuthContext";
-import { colors, withAlpha } from "../theme";
+import { useAuth } from "@/context/AuthContext";
+import { colors, withAlpha } from "@/theme";
 
 export default function Profile() {
     const { logout } = useAuth();
