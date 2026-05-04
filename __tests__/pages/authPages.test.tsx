@@ -23,9 +23,10 @@ beforeEach(() => jest.clearAllMocks());
 
 // Login: [forgotPwd, submit, signup-link], Signup: [submit, login-link]
 // Submit is always second-to-last (last is always the nav link inside <Link>)
-function pressSubmit(getAllByType: (t: unknown) => Array<{ props: unknown }>) {
-  const btns = getAllByType(TouchableOpacity);
-  fireEvent.press(btns[btns.length - 2]);
+function pressSubmit(
+  buttons: Array<{ props: unknown }>,
+) {
+  fireEvent.press(buttons[buttons.length - 2]);
 }
 
 describe("Login page", () => {
@@ -40,7 +41,7 @@ describe("Login page", () => {
 
   it("shows error on empty submit", async () => {
     const { UNSAFE_getAllByType, getByText } = render(<Login />);
-    await act(async () => { pressSubmit(UNSAFE_getAllByType); });
+    await act(async () => { pressSubmit(UNSAFE_getAllByType(TouchableOpacity)); });
     expect(getByText("Veuillez remplir tous les champs.")).toBeTruthy();
   });
 
@@ -50,7 +51,7 @@ describe("Login page", () => {
     const inputs = UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "test@test.com");
     fireEvent.changeText(inputs[1], "pass123");
-    await act(async () => { pressSubmit(UNSAFE_getAllByType); });
+    await act(async () => { pressSubmit(UNSAFE_getAllByType(TouchableOpacity)); });
     expect(mockLogin).toHaveBeenCalledWith("test@test.com", "pass123");
   });
 
@@ -60,7 +61,7 @@ describe("Login page", () => {
     const inputs = UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "x@x.com");
     fireEvent.changeText(inputs[1], "wrong");
-    await act(async () => { pressSubmit(UNSAFE_getAllByType); });
+    await act(async () => { pressSubmit(UNSAFE_getAllByType(TouchableOpacity)); });
     expect(getByText("Email ou mot de passe incorrect.")).toBeTruthy();
   });
 });
@@ -77,7 +78,7 @@ describe("Signup page", () => {
 
   it("shows error on empty submit", async () => {
     const { UNSAFE_getAllByType, getByText } = render(<Signup />);
-    await act(async () => { pressSubmit(UNSAFE_getAllByType); });
+    await act(async () => { pressSubmit(UNSAFE_getAllByType(TouchableOpacity)); });
     expect(getByText("Veuillez remplir tous les champs.")).toBeTruthy();
   });
 
@@ -88,7 +89,7 @@ describe("Signup page", () => {
     // Signup has 4 inputs: email(0), prenom(1), nom(2), password(3)
     fireEvent.changeText(inputs[0], "new@test.com");
     fireEvent.changeText(inputs[3], "pass123");
-    await act(async () => { pressSubmit(UNSAFE_getAllByType); });
+    await act(async () => { pressSubmit(UNSAFE_getAllByType(TouchableOpacity)); });
     expect(mockRegister).toHaveBeenCalledWith("new@test.com", "pass123");
   });
 
@@ -98,7 +99,7 @@ describe("Signup page", () => {
     const inputs = UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "dup@test.com");
     fireEvent.changeText(inputs[3], "pass");
-    await act(async () => { pressSubmit(UNSAFE_getAllByType); });
+    await act(async () => { pressSubmit(UNSAFE_getAllByType(TouchableOpacity)); });
     expect(getByText("Cet email est déjà utilisé.")).toBeTruthy();
   });
 });

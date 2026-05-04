@@ -183,6 +183,7 @@ describe("PlantCard", () => {
     plant: PLANT,
     sondes: [],
     sensorData: new Map(),
+    isSelected: false,
     isMoving: false,
     mapScale: sharedVal,
     isCardInteracting,
