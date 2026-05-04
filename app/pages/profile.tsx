@@ -59,7 +59,7 @@ export default function Profile() {
                     <Row
                         icon="cpu"
                         label="Paramètres des hubs"
-                        onPress={() => router.push("/pages/hubs")}
+                        onPress={() => router.push("./hubs")}
                     />
                     <Row icon="globe" label="Confidentialité" />
                     <Row icon="headphones" label="Support" />
