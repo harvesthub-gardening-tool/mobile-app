@@ -1,0 +1,19 @@
+Pour tester les Tests unitaires : 
+
+cd /home/ahmed/mobile-app
+
+1. Installer les dépendances
+npm install
+
+2. Vérifier le lint
+npm run lint
+
+3. Lancer les tests unitaires
+npm test -- --watch=false
+
+4. Vérifier la couverture de tests (objectif ≥ 80%)
+npm run test -- --coverage --watch=false
+ Dans la sortie console, vérifie la ligne : All files | % Lines  elle dois être supérieure ou égale à 80%
+
+5. Ouvrir le rapport de couverture HTML
+ xdg-open coverage/lcov-report/index.html
