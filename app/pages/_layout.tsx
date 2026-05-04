@@ -11,7 +11,6 @@ export default function PagesLayout() {
                 screenOptions={{
                     headerShown: false,
                     freezeOnBlur: true,
-                    unmountOnBlur: false,
                 }}
             />
             <BottomMenu />

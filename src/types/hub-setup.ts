@@ -1,11 +1,17 @@
-export type Step = "intro" | "bluetooth" | "wifi" | "succes";
-export const STEPS: Step[] = ["intro", "bluetooth", "wifi", "succes"];
+export type Step = "intro" | "bluetooth" | "wifi" | "probes" | "succes";
+export const STEPS: Step[] = ["intro", "bluetooth", "wifi", "probes", "succes"];
 
 export type SubStepStatus = "pending" | "loading" | "done" | "error";
 export type SubStep = { key: string; label: string; status: SubStepStatus };
 
 export type WifiNetwork = { SSID: string; level: number; capabilities: string };
-export type WifiCredentialsProvisioner = (ssid: string, password: string) => Promise<void>;
+export type SetupProbe = {
+    nodeId: string;
+    name: string;
+    version: string;
+};
+
+export type WifiCredentialsProvisioner = (ssid: string, password: string) => Promise<SetupProbe[]>;
 export type SetupFailureHandler = (error: unknown) => Promise<void>;
 
 export class WifiCredentialsRejectedError extends Error {

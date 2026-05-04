@@ -42,7 +42,7 @@ export function SuccessStep({
                     <Feather name="check" size={52} color={colors.text.onPrimary} />
                 </Animated.View>
                 <Text style={styles.title}>Connexion réussie !</Text>
-                <Text style={styles.subtitle}>Votre hub est maintenant connecté et prêt à l'emploi.</Text>
+                <Text style={styles.subtitle}>{"Votre hub est maintenant connecté et prêt à l'emploi."}</Text>
                 <View style={styles.details}>
                     <SuccessRow icon="radio" label="Hub" value={hubName} />
                     <SuccessRow icon="wifi" label="Réseau" value={wifiSsid || "—"} />

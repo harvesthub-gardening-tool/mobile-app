@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Platform, PermissionsAndroid } from "react-native";
 import WifiManager from "react-native-wifi-reborn";
 import type {
     SetupFailureHandler,
+    SetupProbe,
     WifiCredentialsProvisioner,
     WifiNetwork,
 } from "../types/hub-setup";
@@ -23,7 +24,7 @@ async function requestWifiScanPermission(): Promise<void> {
 }
 
 export function useWifiSetup(
-    onSuccess: () => void,
+    onSuccess: (probes: SetupProbe[]) => void,
     sendWifiCredentials: WifiCredentialsProvisioner,
     onSetupFailure: SetupFailureHandler,
 ) {
@@ -36,7 +37,7 @@ export function useWifiSetup(
     const [isConnectingWifi, setIsConnectingWifi] = useState(false);
     const [wifiError, setWifiError] = useState<string | null>(null);
 
-    const startWifiScan = async () => {
+    const startWifiScan = useCallback(async () => {
         setIsScanningWifi(true);
         setWifiError(null);
         try {
@@ -52,9 +53,9 @@ export function useWifiSetup(
         } finally {
             setIsScanningWifi(false);
         }
-    };
+    }, []);
 
-    const handleConnectWifi = async () => {
+    const handleConnectWifi = useCallback(async () => {
         const ssid = Platform.OS === "ios" ? manualSsid.trim() : selectedSsid;
         if (!ssid) return;
         if (!wifiPassword.trim()) {
@@ -64,8 +65,8 @@ export function useWifiSetup(
         setWifiError(null);
         setIsConnectingWifi(true);
         try {
-            await sendWifiCredentials(ssid, wifiPassword);
-            onSuccess();
+            const probes = await sendWifiCredentials(ssid, wifiPassword);
+            onSuccess(probes);
         } catch (e: unknown) {
             if (e instanceof WifiCredentialsRejectedError) {
                 setWifiError(e.message);
@@ -82,7 +83,7 @@ export function useWifiSetup(
         } finally {
             setIsConnectingWifi(false);
         }
-    };
+    }, [manualSsid, onSetupFailure, onSuccess, selectedSsid, sendWifiCredentials, wifiPassword]);
 
     return {
         wifiNetworks,

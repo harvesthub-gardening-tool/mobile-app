@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { View, StyleSheet, Animated, Easing, Dimensions, PanResponder, Platform, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,9 +7,10 @@ import { useWifiSetup } from "@/hooks/useWifiSetup";
 import { revokeHubByDeviceId } from "@/services/authService";
 import { IntroStep } from "@/components/hub-setup/IntroStep";
 import { BluetoothStep } from "@/components/hub-setup/BluetoothStep";
+import { ProbeDiscoveryStep } from "@/components/hub-setup/ProbeDiscoveryStep";
 import { WifiStep } from "@/components/hub-setup/WifiStep";
 import { SuccessStep } from "@/components/hub-setup/SuccessStep";
-import { STEPS, type Step, type HubSetupParams } from "@/types/hub-setup";
+import { STEPS, type Step, type HubSetupParams, type SetupProbe } from "@/types/hub-setup";
 import { colors, withAlpha } from "@/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -25,22 +26,24 @@ export default function HubSetupScreen() {
 
     const [step, setStep] = useState<Step>("intro");
     const stepRef = useRef<Step>("intro");
+    const [setupProbes, setSetupProbes] = useState<SetupProbe[]>([]);
+    const [isScanningProbes, setIsScanningProbes] = useState(false);
 
     const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const backdropAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
-    const goToStep = (next: Step) => {
+    const goToStep = useCallback((next: Step) => {
         stepRef.current = next;
         Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true })
             .start(() => {
                 setStep(next);
                 Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
             });
-    };
+    }, [fadeAnim]);
 
-    const handleDismiss = () => {
+    const handleDismiss = useCallback(() => {
         Animated.parallel([
             Animated.timing(backdropAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
             Animated.timing(slideAnim, {
@@ -55,13 +58,23 @@ export default function HubSetupScreen() {
 
             router.replace("/pages/dashboard");
         });
-    };
+    }, [backdropAnim, router, slideAnim]);
+
+    const handleBluetoothSuccess = useCallback(() => {
+        goToStep("wifi");
+    }, [goToStep]);
+
+    const handleProbeScanStarted = useCallback(() => {
+        setIsScanningProbes(true);
+        goToStep("probes");
+    }, [goToStep]);
 
     const { btSteps, btError, runBluetoothFlow, sendWifiCredentials, markSetupRolledBack } = useBluetoothSetup(
         hubName,
         hubUuid,
         hubSecret,
-        () => goToStep("wifi"),
+        handleBluetoothSuccess,
+        handleProbeScanStarted,
     );
     const handleSetupFailure = async (error: unknown) => {
         try {
@@ -82,10 +95,17 @@ export default function HubSetupScreen() {
     };
 
     const wifi = useWifiSetup(
-        () => goToStep("succes"),
+        useCallback((probes: SetupProbe[]) => {
+            setSetupProbes(probes);
+            setIsScanningProbes(false);
+            if (stepRef.current !== "probes") {
+                goToStep("probes");
+            }
+        }, [goToStep]),
         sendWifiCredentials,
         handleSetupFailure,
     );
+    const { startWifiScan } = wifi;
 
     useEffect(() => {
         Animated.parallel([
@@ -95,7 +115,7 @@ export default function HubSetupScreen() {
                 easing: Easing.out(Easing.cubic),
             }),
         ]).start();
-    }, []);
+    }, [backdropAnim, slideAnim]);
 
     useEffect(() => {
         if (step !== "succes") return;
@@ -107,15 +127,15 @@ export default function HubSetupScreen() {
         );
         loop.start();
         return () => loop.stop();
-    }, [step]);
+    }, [pulseAnim, step]);
 
     useEffect(() => {
         if (step === "bluetooth") runBluetoothFlow();
-    }, [step]);
+    }, [runBluetoothFlow, step]);
 
     useEffect(() => {
-        if (step === "wifi" && Platform.OS === "android") wifi.startWifiScan();
-    }, [step]);
+        if (step === "wifi" && Platform.OS === "android") startWifiScan();
+    }, [startWifiScan, step]);
 
     const panResponder = useRef(
         PanResponder.create({
@@ -181,6 +201,13 @@ export default function HubSetupScreen() {
                             />
                         )}
                         {step === "wifi" && <WifiStep {...wifi} />}
+                        {step === "probes" && (
+                            <ProbeDiscoveryStep
+                                probes={setupProbes}
+                                scanning={isScanningProbes}
+                                onNext={() => goToStep("succes")}
+                            />
+                        )}
                         {step === "succes" && (
                             <SuccessStep
                                 hubName={hubName}
