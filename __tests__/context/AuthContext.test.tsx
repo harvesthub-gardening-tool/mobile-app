@@ -1,14 +1,14 @@
 import React from "react";
 import { renderHook, act } from "@testing-library/react-native";
-import { AuthProvider, useAuth } from "../../app/context/AuthContext";
+import { AuthProvider, useAuth } from "../../src/context/AuthContext";
 
-jest.mock("../../app/services/api", () => ({
+jest.mock("../../src/services/api", () => ({
   getStoredToken: jest.fn().mockResolvedValue(null),
   removeStoredToken: jest.fn().mockResolvedValue(undefined),
   setStoredToken: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("../../app/services/authService", () => ({
+jest.mock("../../src/services/authService", () => ({
   login: jest.fn(),
   register: jest.fn(),
 }));
@@ -18,8 +18,8 @@ jest.mock("expo-router", () => ({
   useSegments: () => [],
 }));
 
-import { getStoredToken, removeStoredToken } from "../../app/services/api";
-import * as authService from "../../app/services/authService";
+import { getStoredToken, removeStoredToken } from "../../src/services/api";
+import * as authService from "../../src/services/authService";
 
 const mockGetToken = getStoredToken as jest.Mock;
 const mockRemoveToken = removeStoredToken as jest.Mock;
@@ -108,6 +108,23 @@ describe("AuthContext — login", () => {
     await expect(
       act(async () => { await result.current.login("x@x.com", "wrong"); }),
     ).rejects.toThrow("Invalid credentials");
+  });
+});
+
+describe("AuthContext — refreshToken", () => {
+  it("updates authenticated state from a refreshed token", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    const payload = btoa(JSON.stringify({ user_id: "user_refreshed", username: "new@test.com" }));
+    await act(async () => {
+      result.current.refreshToken(`h.${payload}.s`);
+    });
+
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.userId).toBe("user_refreshed");
   });
 });
 

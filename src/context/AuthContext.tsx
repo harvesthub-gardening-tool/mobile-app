@@ -20,6 +20,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  refreshToken: (token: string) => void;
   logout: () => Promise<void>;
 }
 
@@ -44,8 +45,13 @@ function base64Decode(str: string): string {
 interface JwtPayload {
   sub?: string;
   user_id?: string;
+  username?: string;
   exp?: number;
   [key: string]: unknown;
+}
+
+function getUserIdFromPayload(payload: JwtPayload | null): string | null {
+  return payload?.sub || payload?.user_id || null;
 }
 
 function decodeJwtPayload(token: string): JwtPayload | null {
@@ -85,8 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setState({
         token,
-        userId:
-          payload && !expired ? payload.sub || payload.user_id || null : null,
+        userId: payload && !expired ? getUserIdFromPayload(payload) : null,
         isLoading: false,
         isAuthenticated: token !== null,
       });
@@ -103,14 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (state.isAuthenticated && !inDashboard && !inModal) {
       router.replace("/pages/dashboard");
     }
-  }, [state.isAuthenticated, state.isLoading, segments]);
+  }, [router, state.isAuthenticated, state.isLoading, segments]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authService.login(email, password);
     const payload = decodeJwtPayload(res.token);
     setState({
       token: res.token,
-      userId: payload?.sub || payload?.user_id || null,
+      userId: getUserIdFromPayload(payload),
+      isLoading: false,
+      isAuthenticated: true,
+    });
+  }, []);
+
+  const refreshToken = useCallback((token: string) => {
+    const payload = decodeJwtPayload(token);
+    setState({
+      token,
+      userId: getUserIdFromPayload(payload),
       isLoading: false,
       isAuthenticated: true,
     });
@@ -119,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (email: string, password: string) => {
     await authService.register(email, password);
     router.replace("/login");
-  }, []);
+  }, [router]);
 
   const logout = useCallback(async () => {
     await removeStoredToken();
@@ -132,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout }}>
+    <AuthContext.Provider value={{ ...state, login, register, refreshToken, logout }}>
       {children}
     </AuthContext.Provider>
   );
