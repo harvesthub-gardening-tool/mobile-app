@@ -5,16 +5,16 @@ jest.mock("../../app/services/authService", () => ({
 }));
 
 jest.mock("../../app/services/gardenService", () => ({
-  getSummary: jest.fn(),
+  getLast: jest.fn(),
   listProbesForHubName: jest.fn(),
 }));
 
 import { useSensorData } from "../../app/hooks/useSensorData";
 import { listHubs } from "../../app/services/authService";
-import { getSummary, listProbesForHubName } from "../../app/services/gardenService";
+import { getLast, listProbesForHubName } from "../../app/services/gardenService";
 
 const mockListHubs = listHubs as jest.Mock;
-const mockGetSummary = getSummary as jest.Mock;
+const mockGetLast = getLast as jest.Mock;
 const mockListProbes = listProbesForHubName as jest.Mock;
 
 async function flush() {
@@ -28,7 +28,7 @@ async function flush() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockListHubs.mockResolvedValue([]);
-  mockGetSummary.mockResolvedValue([]);
+  mockGetLast.mockResolvedValue(null);
   mockListProbes.mockResolvedValue([]);
 });
 
@@ -41,16 +41,9 @@ describe("useSensorData", () => {
   });
 
   it("builds map from probes and summaries", async () => {
-    mockListHubs.mockResolvedValue([{ hubName: "Hub A", id: "hub-1" }]);
+    mockListHubs.mockResolvedValue([{ hubName: "Hub A", id: "hub-1", claimed: true, revoked: false }]);
     mockListProbes.mockResolvedValue([{ nodeId: "n1", airTemperature: 22.5, airHumidity: 60 }]);
-    mockGetSummary.mockResolvedValue([{
-      nodeId: "n1",
-      intervalStart: BigInt(1000),
-      avgAirTemperature: 21,
-      avgAirHumidity: 55,
-      avgSoilHumidity: 30,
-      avgSoilTemperature: 18,
-    }]);
+    mockGetLast.mockResolvedValue({ soilHumidity: 30, soilTemperature: 18 });
 
     const { result } = renderHook(() => useSensorData());
     await flush();
@@ -64,16 +57,14 @@ describe("useSensorData", () => {
   });
 
   it("uses summary values when probe lacks them", async () => {
-    mockListHubs.mockResolvedValue([{ hubName: "H", id: "1" }]);
+    mockListHubs.mockResolvedValue([{ hubName: "H", id: "1", claimed: true, revoked: false }]);
     mockListProbes.mockResolvedValue([{ nodeId: "n2" }]);
-    mockGetSummary.mockResolvedValue([{
-      nodeId: "n2",
-      intervalStart: BigInt(1000),
-      avgAirTemperature: 19,
-      avgAirHumidity: 50,
-      avgSoilHumidity: 25,
-      avgSoilTemperature: 15,
-    }]);
+    mockGetLast.mockResolvedValue({
+      airTemperature: 19,
+      airHumidity: 50,
+      soilHumidity: 25,
+      soilTemperature: 15,
+    });
 
     const { result } = renderHook(() => useSensorData());
     await flush();
@@ -83,13 +74,10 @@ describe("useSensorData", () => {
     expect(data?.airHumidity).toBe(50);
   });
 
-  it("picks latest summary per node when multiple rows", async () => {
-    mockListHubs.mockResolvedValue([{ hubName: "H", id: "1" }]);
+  it("uses the latest reading per node", async () => {
+    mockListHubs.mockResolvedValue([{ hubName: "H", id: "1", claimed: true, revoked: false }]);
     mockListProbes.mockResolvedValue([{ nodeId: "n3" }]);
-    mockGetSummary.mockResolvedValue([
-      { nodeId: "n3", intervalStart: BigInt(500), avgAirTemperature: 10, avgAirHumidity: 40, avgSoilHumidity: 0, avgSoilTemperature: 0 },
-      { nodeId: "n3", intervalStart: BigInt(2000), avgAirTemperature: 25, avgAirHumidity: 70, avgSoilHumidity: 0, avgSoilTemperature: 0 },
-    ]);
+    mockGetLast.mockResolvedValue({ airTemperature: 25, airHumidity: 70, soilHumidity: 0, soilTemperature: 0 });
 
     const { result } = renderHook(() => useSensorData());
     await flush();

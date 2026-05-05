@@ -37,11 +37,11 @@ describe("colors", () => {
   });
 
   it("brand accent is the green", () => {
-    expect(colors.brand.accent).toBe("#63FFA4");
+    expect(colors.brand.accent).toBe("#173124");
   });
 
   it("garden map color is set", () => {
-    expect(colors.garden.map).toBe("#7ec850");
-    expect(colors.garden.mapBorder).toBe("#c4a46c");
+    expect(colors.garden.map).toBe("#5e7a57");
+    expect(colors.garden.mapBorder).toBe("#ad9579");
   });
 });

@@ -34,13 +34,15 @@ jest.mock("expo-router", () => ({
 
 // AuthContext
 jest.mock("../app/context/AuthContext", () => ({
-  useAuth: () => ({ userId: "user_1", token: "tok", logout: jest.fn() }),
+  useAuth: () => ({ userId: "user_1", token: "tok", refreshToken: jest.fn(), logout: jest.fn() }),
 }));
 
 // services
 jest.mock("../app/services/authService", () => ({
   login: jest.fn(),
   register: jest.fn(),
+  changeEmail: jest.fn().mockResolvedValue({ token: "tok" }),
+  changePassword: jest.fn().mockResolvedValue(undefined),
   listHubs: jest.fn().mockResolvedValue([]),
 }));
 
