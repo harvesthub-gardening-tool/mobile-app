@@ -37,7 +37,7 @@ export default function HubsPage() {
                 <TouchableOpacity
                     accessibilityRole="button"
                     style={styles.backButton}
-                    onPress={() => router.back()}
+                    onPress={() => router.replace("/pages/profile")}
                 >
                     <Feather name="chevron-left" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
