@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
+    "preserveSymlinks": true,
     "types": [
       "jest",
       "node"
@@ -10,6 +11,30 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "../../app/components/*": [
+        "./src/components/*"
+      ],
+      "../../app/constants/*": [
+        "./src/constants/*"
+      ],
+      "../../app/context/*": [
+        "./src/context/*"
+      ],
+      "../../app/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "../../app/services/*": [
+        "./src/services/*"
+      ],
+      "../../app/theme/*": [
+        "./src/theme/*"
+      ],
+      "../../app/types/*": [
+        "./src/types/*"
+      ],
+      "../../app/utils/*": [
+        "./src/utils/*"
       ]
     }
   },
@@ -18,5 +43,8 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "__tests__"
   ]
 }

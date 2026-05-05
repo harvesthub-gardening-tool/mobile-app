@@ -6,6 +6,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^../../app/(components|constants|context|hooks|services|theme|types|utils)/(.*)$": "<rootDir>/src/$1/$2",
   },
   testPathIgnorePatterns: ["/node_modules/", "__tests__/mocks/"],
   collectCoverageFrom: [
