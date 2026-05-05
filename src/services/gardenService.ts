@@ -1,6 +1,9 @@
 import { ConnectError, Code } from "@connectrpc/connect";
 import { API_BASE_URL, gardenClient, getStoredToken } from "./api";
-import type { InsertSensorDataResponse } from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
+import type {
+    InsertSensorDataResponse,
+    SensorSummary,
+} from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
 
 function translateError(err: unknown): string {
     const connectErr = ConnectError.from(err);
@@ -31,6 +34,19 @@ export async function insertSensorData(data: {
 }): Promise<InsertSensorDataResponse> {
     try {
         return await gardenClient.insertSensorData(data);
+    } catch (err: unknown) {
+        throw new Error(translateError(err));
+    }
+}
+
+export async function getSummary(
+    nodeId?: string,
+    hours?: number,
+    hubId?: string,
+): Promise<SensorSummary[]> {
+    try {
+        const res = await gardenClient.getSummary({ nodeId, hours, hubId });
+        return res.summaries;
     } catch (err: unknown) {
         throw new Error(translateError(err));
     }

@@ -10,31 +10,36 @@ export type ProbeSensorData = {
 };
 
 // Retourne la dernière lecture par nodeId, rafraîchie toutes les 30s
-export function useSensorData(): Map<string, ProbeSensorData> {
+export function useSensorData(refreshSignal?: number): Map<string, ProbeSensorData> {
   const [summaries, setSummaries] = useState<Map<string, ProbeSensorData>>(
     new Map(),
   );
 
-  const refresh = useCallback(async () => {
-    try {
-      const hubs = await listHubs();
-      const perHubData = await Promise.all(
-        hubs.map(async (hub) => {
-          const probes = await listProbesForHubName(hub.hubName);
-          const readings = await Promise.all(
-            probes.map(async (probe) => ({
-              probe,
-              reading: await getLast(probe.nodeId),
-            })),
-          );
+    const refresh = useCallback(async () => {
+        try {
+            const hubs = await listHubs();
+            const readableHubs = hubs.filter((hub) => hub.claimed && !hub.revoked);
+            const perHubResults = await Promise.allSettled(
+                readableHubs.map(async (hub) => {
+                    const probes = await listProbesForHubName(hub.hubName);
+                    const readingResults = await Promise.allSettled(
+                        probes.map(async (probe) => ({
+                            probe,
+                            reading: await getLast(probe.nodeId),
+                        })),
+                    );
 
-          return readings;
-        }),
-      );
+                    return readingResults.flatMap((result) =>
+                        result.status === "fulfilled" ? [result.value] : [],
+                    );
+                }),
+            );
 
-      const map = new Map<string, ProbeSensorData>();
-      for (const readings of perHubData) {
-        for (const { probe, reading } of readings) {
+            const map = new Map<string, ProbeSensorData>();
+            for (const readings of perHubResults.flatMap((result) =>
+                result.status === "fulfilled" ? [result.value] : [],
+            )) {
+                for (const { probe, reading } of readings) {
           map.set(probe.nodeId, {
             airTemperature: reading?.airTemperature ?? probe.airTemperature,
             airHumidity: reading?.airHumidity ?? probe.airHumidity,
@@ -50,11 +55,11 @@ export function useSensorData(): Map<string, ProbeSensorData> {
     }
   }, []);
 
-  useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, 30_000);
-    return () => clearInterval(interval);
-  }, [refresh]);
+    useEffect(() => {
+        refresh();
+        const interval = setInterval(refresh, 30_000);
+        return () => clearInterval(interval);
+    }, [refresh, refreshSignal]);
 
   return summaries;
 }
