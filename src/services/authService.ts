@@ -4,6 +4,7 @@ import type {
   RegisterResponse,
   LoginResponse,
   HubInfo,
+  ChangeEmailResponse,
 } from "@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb";
 
 function translateError(err: unknown): string {
@@ -48,6 +49,30 @@ export async function login(
     const res = await authClient.login({ email, password });
     await setStoredToken(res.token);
     return res;
+  } catch (err: unknown) {
+    throw new Error(translateError(err));
+  }
+}
+
+export async function changeEmail(
+  newEmail: string,
+  currentPassword: string,
+): Promise<ChangeEmailResponse> {
+  try {
+    const res = await authClient.changeEmail({ newEmail, currentPassword });
+    await setStoredToken(res.token);
+    return res;
+  } catch (err: unknown) {
+    throw new Error(translateError(err));
+  }
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  try {
+    await authClient.changePassword({ currentPassword, newPassword });
   } catch (err: unknown) {
     throw new Error(translateError(err));
   }
