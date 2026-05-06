@@ -1,6 +1,9 @@
 import React from "react";
 import { fireEvent, render } from "@testing-library/react-native";
 
+const mockUseGardenStorage = jest.fn();
+const mockUseSensorData = jest.fn();
+
 jest.mock("@expo/vector-icons", () => ({ Feather: "Feather" }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -19,6 +22,12 @@ jest.mock("../../src/context/AuthContext", () => ({
 jest.mock("../../src/hooks/useHubs", () => ({
   useHubs: () => ({ hubs: [], loading: false, error: null, refresh: jest.fn() }),
 }));
+jest.mock("../../src/hooks/useGardenStorage", () => ({
+  useGardenStorage: () => mockUseGardenStorage(),
+}));
+jest.mock("../../src/hooks/useSensorData", () => ({
+  useSensorData: () => mockUseSensorData(),
+}));
 jest.mock("../../src/services/authService", () => ({
   listHubs: jest.fn().mockResolvedValue([]),
   changeEmail: jest.fn().mockResolvedValue({ token: "token" }),
@@ -31,14 +40,70 @@ import Profile from "../../app/pages/profile";
 import Hubs from "../../app/pages/hubs";
 
 describe("Alerts page", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseGardenStorage.mockReturnValue({
+      plants: [
+        {
+          id: "plant-dry",
+          plantType: { id: "tomato", name: "Tomate", emoji: "🍅", category: "fruit" },
+          x: 0,
+          y: 0,
+          width: 80,
+          height: 80,
+          quantity: 2,
+          sondeId: "sonde-dry",
+        },
+        {
+          id: "plant-watered",
+          plantType: { id: "basil", name: "Basilic", emoji: "🌿", category: "herbe" },
+          x: 20,
+          y: 20,
+          width: 80,
+          height: 80,
+          quantity: 1,
+          sondeId: "sonde-watered",
+        },
+      ],
+      sondes: [
+        { id: "sonde-dry", x: 0, y: 0, nodeId: "node-dry", hubName: "Hub Nord" },
+        { id: "sonde-watered", x: 0, y: 0, nodeId: "node-watered", hubName: "Hub Sud" },
+      ],
+    });
+    mockUseSensorData.mockReturnValue(
+      new Map([
+        ["node-dry", { soilHumidity: 24, soilTemperature: 18.4 }],
+        ["node-watered", { soilHumidity: 55, soilTemperature: 19.2 }],
+      ]),
+    );
+  });
+
   it("renders without crashing", () => {
-    const { toJSON } = render(<Alerts />);
+    const { getByText, toJSON } = render(<Alerts />);
+
+    expect(getByText("Alertes")).toBeTruthy();
     expect(toJSON()).toBeTruthy();
   });
 
-  it("shows page title", () => {
+  it("shows French water statuses from linked probe data", () => {
     const { getByText } = render(<Alerts />);
-    expect(getByText("Alert")).toBeTruthy();
+
+    expect(getByText("Tomate")).toBeTruthy();
+    expect(getByText("Basilic")).toBeTruthy();
+    expect(getByText("À arroser")).toBeTruthy();
+    expect(getByText("Arrosée")).toBeTruthy();
+    expect(getByText("24%")).toBeTruthy();
+    expect(getByText("55%")).toBeTruthy();
+    expect(getByText(/Rafraîchissement automatique toutes les 30 secondes/)).toBeTruthy();
+  });
+
+  it("shows an empty French state when no plants are configured", () => {
+    mockUseGardenStorage.mockReturnValue({ plants: [], sondes: [] });
+    mockUseSensorData.mockReturnValue(new Map());
+
+    const { getByText } = render(<Alerts />);
+
+    expect(getByText("Aucune plante à surveiller")).toBeTruthy();
   });
 });
 
