@@ -1,8 +1,11 @@
 import React from "react";
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, waitFor, within } from "@testing-library/react-native";
+import { MotorCommandStatus } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
 
 const mockUseGardenStorage = jest.fn();
 const mockUseSensorData = jest.fn();
+const mockCreateMotorCommand = jest.fn();
+const mockPollMotorCommandStatus = jest.fn();
 
 jest.mock("@expo/vector-icons", () => ({ Feather: "Feather" }));
 jest.mock("react-native-safe-area-context", () => ({
@@ -27,6 +30,11 @@ jest.mock("../../src/hooks/useGardenStorage", () => ({
 }));
 jest.mock("../../src/hooks/useSensorData", () => ({
   useSensorData: () => mockUseSensorData(),
+}));
+jest.mock("../../src/services/controlService", () => ({
+  createMotorCommand: (...args: unknown[]) => mockCreateMotorCommand(...args),
+  getMotorReasonPresentation: jest.fn(() => null),
+  pollMotorCommandStatus: (...args: unknown[]) => mockPollMotorCommandStatus(...args),
 }));
 jest.mock("../../src/services/authService", () => ({
   listHubs: jest.fn().mockResolvedValue([]),
@@ -66,8 +74,8 @@ describe("Alerts page", () => {
         },
       ],
       sondes: [
-        { id: "sonde-dry", x: 0, y: 0, nodeId: "node-dry", hubName: "Hub Nord" },
-        { id: "sonde-watered", x: 0, y: 0, nodeId: "node-watered", hubName: "Hub Sud" },
+        { id: "sonde-dry", x: 0, y: 0, nodeId: "node-dry", hubId: "hub-nord", hubName: "Hub Nord" },
+        { id: "sonde-watered", x: 0, y: 0, nodeId: "node-watered", hubId: "hub-sud", hubName: "Hub Sud" },
       ],
     });
     mockUseSensorData.mockReturnValue(
@@ -76,6 +84,8 @@ describe("Alerts page", () => {
         ["node-watered", { soilHumidity: 55, soilTemperature: 19.2 }],
       ]),
     );
+    mockCreateMotorCommand.mockResolvedValue({ command: null });
+    mockPollMotorCommandStatus.mockResolvedValue({ command: null, isTerminal: true, timedOut: false });
   });
 
   it("renders without crashing", () => {
@@ -95,6 +105,72 @@ describe("Alerts page", () => {
     expect(getByText("24%")).toBeTruthy();
     expect(getByText("55%")).toBeTruthy();
     expect(getByText(/Rafraîchissement automatique toutes les 30 secondes/)).toBeTruthy();
+  });
+
+  it("shows watering only for dry alert cards", async () => {
+    const { findAllByText, getByTestId } = render(<Alerts />);
+
+    expect(await findAllByText("Arroser")).toHaveLength(1);
+    expect(within(getByTestId("plant-water-status-plant-dry")).getByText("Arroser")).toBeTruthy();
+    expect(within(getByTestId("plant-water-status-plant-watered")).queryByText("Arroser")).toBeNull();
+  });
+
+  it("hides watering when the linked sonde has no hub id", () => {
+    mockUseGardenStorage.mockReturnValue({
+      plants: [
+        {
+          id: "plant-dry",
+          plantType: { id: "tomato", name: "Tomate", emoji: "🍅", category: "fruit" },
+          x: 0,
+          y: 0,
+          width: 80,
+          height: 80,
+          quantity: 2,
+          sondeId: "sonde-dry",
+        },
+      ],
+      sondes: [{ id: "sonde-dry", x: 0, y: 0, nodeId: "node-dry", hubName: "Hub Nord" }],
+    });
+
+    const { queryByText } = render(<Alerts />);
+
+    expect(queryByText("Arroser")).toBeNull();
+  });
+
+  it("triggers watering from an alert card with the linked hub and node", async () => {
+    const { findAllByText } = render(<Alerts />);
+
+    fireEvent.press((await findAllByText("Arroser"))[0]);
+
+    await waitFor(() => {
+      expect(mockCreateMotorCommand).toHaveBeenCalledWith("hub-nord", "node-dry", 3000);
+    });
+  });
+
+  it("unlocks the alert watering action when polling times out", async () => {
+    mockCreateMotorCommand.mockResolvedValue({
+      command: {
+        commandId: "cmd-timeout",
+        status: MotorCommandStatus.QUEUED,
+      },
+    });
+    mockPollMotorCommandStatus.mockResolvedValue({
+      command: {
+        commandId: "cmd-timeout",
+        status: MotorCommandStatus.QUEUED,
+      },
+      isTerminal: false,
+      timedOut: true,
+    });
+
+    const { findAllByText, getByText } = render(<Alerts />);
+
+    fireEvent.press((await findAllByText("Arroser"))[0]);
+
+    await waitFor(() => {
+      expect(getByText("La commande prend plus de temps que prévu. Vous pouvez réessayer dans quelques instants.")).toBeTruthy();
+    });
+    expect(await findAllByText("Arroser")).toHaveLength(1);
   });
 
   it("shows an empty French state when no plants are configured", () => {

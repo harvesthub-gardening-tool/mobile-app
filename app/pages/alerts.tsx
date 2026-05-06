@@ -1,20 +1,36 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import type { MotorCommand } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
+import { MotorCommandStatus } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGardenStorage } from "@/hooks/useGardenStorage";
 import { useSensorData } from "@/hooks/useSensorData";
+import {
+    createMotorCommand,
+    getMotorReasonPresentation,
+    pollMotorCommandStatus,
+} from "@/services/controlService";
 import { colors, withAlpha } from "@/theme";
 import type { PlacedPlant, PlacedSonde } from "@/types/garden";
 
 const DRY_SOIL_THRESHOLD = 35;
 const WATERED_SOIL_THRESHOLD = 70;
+const DEFAULT_MOTOR_DURATION_MS = 3000;
+
+const NON_TERMINAL_MOTOR_STATUSES = new Set<MotorCommandStatus>([
+    MotorCommandStatus.QUEUED,
+    MotorCommandStatus.LEASED_TO_HUB,
+    MotorCommandStatus.SENT_TO_PROBE,
+    MotorCommandStatus.EXECUTING,
+]);
 
 type WaterStatus = "dry" | "watered" | "wet" | "missing-reading" | "unlinked";
 
@@ -25,6 +41,7 @@ type PlantWaterStatus = {
     status: WaterStatus;
     soilHumidity: number | null;
     soilTemperature: number | null;
+    hubId: string | null;
     hubName: string | null;
     nodeId: string | null;
     recommendation: string;
@@ -89,6 +106,7 @@ function getPlantStatus(plant: PlacedPlant, sondes: PlacedSonde[], sensorData: M
             status: "unlinked",
             soilHumidity: null,
             soilTemperature: null,
+            hubId: null,
             hubName: null,
             nodeId: null,
             recommendation: "Liez une sonde à cette plante depuis la carte du jardin pour suivre son arrosage.",
@@ -107,6 +125,7 @@ function getPlantStatus(plant: PlacedPlant, sondes: PlacedSonde[], sensorData: M
             status: "missing-reading",
             soilHumidity,
             soilTemperature,
+            hubId: linkedSonde.hubId ?? null,
             hubName: linkedSonde.hubName,
             nodeId: linkedSonde.nodeId,
             recommendation: "Aucune humidité du sol reçue pour cette sonde. Vérifiez la connexion ou la batterie.",
@@ -121,6 +140,7 @@ function getPlantStatus(plant: PlacedPlant, sondes: PlacedSonde[], sensorData: M
             status: "dry",
             soilHumidity,
             soilTemperature,
+            hubId: linkedSonde.hubId ?? null,
             hubName: linkedSonde.hubName,
             nodeId: linkedSonde.nodeId,
             recommendation: "Arrosez cette zone maintenant, puis contrôlez la lecture à la prochaine synchronisation.",
@@ -135,6 +155,7 @@ function getPlantStatus(plant: PlacedPlant, sondes: PlacedSonde[], sensorData: M
             status: "watered",
             soilHumidity,
             soilTemperature,
+            hubId: linkedSonde.hubId ?? null,
             hubName: linkedSonde.hubName,
             nodeId: linkedSonde.nodeId,
             recommendation: "Le niveau d'humidité est dans la zone idéale. Aucun arrosage nécessaire.",
@@ -148,6 +169,7 @@ function getPlantStatus(plant: PlacedPlant, sondes: PlacedSonde[], sensorData: M
         status: "wet",
         soilHumidity,
         soilTemperature,
+        hubId: linkedSonde.hubId ?? null,
         hubName: linkedSonde.hubName,
         nodeId: linkedSonde.nodeId,
         recommendation: "Suspendez l'arrosage et surveillez cette plante pour éviter l'excès d'eau.",
@@ -174,8 +196,86 @@ function sortPlantStatuses(a: PlantWaterStatus, b: PlantWaterStatus): number {
     return priority[a.status] - priority[b.status] || a.name.localeCompare(b.name, "fr");
 }
 
+function getMotorStatusLabel(command: MotorCommand | null): string | null {
+    const status = command?.status ?? null;
+    const reasonPresentation = getMotorReasonPresentation(command);
+
+    switch (status) {
+        case MotorCommandStatus.QUEUED:
+            return "Commande en attente...";
+        case MotorCommandStatus.LEASED_TO_HUB:
+            return "Commande transmise au hub...";
+        case MotorCommandStatus.SENT_TO_PROBE:
+            return "Commande envoyée à la sonde...";
+        case MotorCommandStatus.EXECUTING:
+            return "Arrosage en cours...";
+        case MotorCommandStatus.SUCCEEDED:
+            return "Arrosage terminé avec succès.";
+        case MotorCommandStatus.FAILED:
+            return reasonPresentation?.message ?? "Échec de la commande. Vous pouvez réessayer.";
+        case MotorCommandStatus.EXPIRED:
+            return reasonPresentation?.message ?? "Commande expirée avant exécution. Vous pouvez réessayer.";
+        case MotorCommandStatus.CANCELLED:
+            return "Commande annulée. Vous pouvez réessayer.";
+        default:
+            return null;
+    }
+}
+
 function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
+    const [motorCommand, setMotorCommand] = useState<MotorCommand | null>(null);
+    const [motorCommandNodeId, setMotorCommandNodeId] = useState<string | null>(null);
+    const [motorLoading, setMotorLoading] = useState(false);
+    const [motorError, setMotorError] = useState<string | null>(null);
+
     const visual = statusVisuals[plantStatus.status];
+    const hubId = plantStatus.hubId?.trim() ?? "";
+    const nodeId = plantStatus.nodeId?.trim() ?? "";
+    const canTriggerMotor = hubId.length > 0 && nodeId.length > 0;
+    const shouldShowMotorAction = plantStatus.status === "dry" || motorCommandNodeId === nodeId;
+    const motorStatus = motorCommand?.status ?? null;
+    const motorStatusLabel = getMotorStatusLabel(motorCommand);
+    const hasActiveCommandForProbe =
+        motorCommandNodeId === nodeId && motorStatus !== null && NON_TERMINAL_MOTOR_STATUSES.has(motorStatus);
+    const motorActionDisabled = motorLoading || hasActiveCommandForProbe;
+    const motorStatusStyle =
+        motorStatus === MotorCommandStatus.SUCCEEDED
+            ? styles.motorStatusSuccess
+            : motorStatus === MotorCommandStatus.FAILED || motorStatus === MotorCommandStatus.EXPIRED
+                ? styles.motorStatusDanger
+                : styles.motorStatus;
+
+    const handleMotorTrigger = async () => {
+        if (!canTriggerMotor || motorActionDisabled) return;
+
+        setMotorLoading(true);
+        setMotorError(null);
+        setMotorCommand(null);
+        setMotorCommandNodeId(nodeId);
+
+        try {
+            const response = await createMotorCommand(hubId, nodeId, DEFAULT_MOTOR_DURATION_MS);
+            const command = response.command ?? null;
+            setMotorCommand(command);
+
+            if (command?.commandId && NON_TERMINAL_MOTOR_STATUSES.has(command.status)) {
+                const result = await pollMotorCommandStatus(command.commandId, {
+                    onStatusChange: (_status, updatedCommand) => setMotorCommand(updatedCommand),
+                });
+                if (result.timedOut) {
+                    setMotorCommand(null);
+                    setMotorCommandNodeId(null);
+                    setMotorError("La commande prend plus de temps que prévu. Vous pouvez réessayer dans quelques instants.");
+                } else {
+                    setMotorCommand(result.command);
+                }
+            }
+        } catch (err: unknown) {
+            setMotorError(err instanceof Error ? err.message : "Impossible de lancer la commande moteur.");
+        } finally {
+            setMotorLoading(false);
+        }
+    };
 
     return (
         <View style={styles.statusCard} testID={`plant-water-status-${plantStatus.id}`}>
@@ -217,6 +317,28 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
                 <Feather name="activity" size={14} color={visual.color} />
                 <Text style={styles.recommendationText}>{plantStatus.recommendation}</Text>
             </View>
+
+            {canTriggerMotor && shouldShowMotorAction ? (
+                <View style={styles.motorPanel}>
+                    <View style={styles.motorCopy}>
+                        <Text style={styles.motorTitle}>Action rapide</Text>
+                        <Text style={styles.motorHint}>Déclenche l&apos;arrosage via {plantStatus.hubName ?? "le hub lié"}.</Text>
+                        {motorStatusLabel ? <Text style={motorStatusStyle}>{motorStatusLabel}</Text> : null}
+                        {motorError ? <Text style={styles.motorStatusDanger}>{motorError}</Text> : null}
+                    </View>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Arroser ${plantStatus.name}`}
+                        style={[styles.motorButton, motorActionDisabled && styles.motorButtonDisabled]}
+                        disabled={motorActionDisabled}
+                        activeOpacity={0.86}
+                        onPress={handleMotorTrigger}
+                    >
+                        <Feather name="droplet" size={15} color={colors.text.onPrimary} />
+                        <Text style={styles.motorButtonText}>{motorActionDisabled ? "En cours" : "Arroser"}</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : null}
         </View>
     );
 }
@@ -536,6 +658,66 @@ const styles = StyleSheet.create({
         fontSize: 13,
         lineHeight: 19,
         fontWeight: "600",
+    },
+    motorPanel: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: 12,
+        borderRadius: 20,
+        backgroundColor: colors.surface.low,
+        borderWidth: 1,
+        borderColor: withAlpha(colors.border.subtle, 0.2),
+    },
+    motorCopy: {
+        flex: 1,
+        minWidth: 0,
+    },
+    motorTitle: {
+        color: colors.text.primary,
+        fontSize: 13,
+        fontWeight: "800",
+    },
+    motorHint: {
+        marginTop: 3,
+        color: colors.text.muted,
+        fontSize: 11,
+    },
+    motorStatus: {
+        marginTop: 6,
+        color: colors.brand.secondary,
+        fontSize: 11,
+        fontWeight: "700",
+    },
+    motorStatusSuccess: {
+        marginTop: 6,
+        color: colors.state.success,
+        fontSize: 11,
+        fontWeight: "700",
+    },
+    motorStatusDanger: {
+        marginTop: 6,
+        color: colors.state.danger,
+        fontSize: 11,
+        fontWeight: "700",
+    },
+    motorButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        minWidth: 94,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.brand.primary,
+    },
+    motorButtonDisabled: {
+        opacity: 0.56,
+    },
+    motorButtonText: {
+        color: colors.text.onPrimary,
+        fontSize: 12,
+        fontWeight: "800",
     },
     emptyCard: {
         minHeight: 240,

@@ -206,7 +206,7 @@ export interface MotorCommandStatusPollResult {
  * @param commandId - The command identifier to poll
  * @param options - Polling configuration
  * @param options.intervalMs - Time between polls in milliseconds (default: 1000)
- * @param options.maxTimeoutMs - Maximum total polling duration in milliseconds (default: 30000)
+ * @param options.maxTimeoutMs - Maximum total polling duration in milliseconds (default: 80000)
  * @param options.onStatusChange - Optional callback fired on each status change
  * @returns Result containing final command state, terminal flag, and timeout flag
  * @throws Error on network failure or permission issues
@@ -216,7 +216,7 @@ export async function pollMotorCommandStatus(
     options: MotorCommandStatusPollOptions = {},
 ): Promise<MotorCommandStatusPollResult> {
     const intervalMs = options.intervalMs ?? 1000;
-    const maxTimeoutMs = options.maxTimeoutMs ?? 30000;
+    const maxTimeoutMs = options.maxTimeoutMs ?? 80000;
     const onStatusChange = options.onStatusChange;
 
     const startTime = Date.now();
