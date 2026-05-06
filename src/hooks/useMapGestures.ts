@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Gesture, type TouchData } from "react-native-gesture-handler";
 import {
     useSharedValue,
@@ -50,6 +50,30 @@ export function useMapGestures(
     const isPinching = useSharedValue(false);
     const didPinch = useSharedValue(false);
     const isCardInteracting = useSharedValue(false);
+
+    const resetGestureState = useCallback(() => {
+        cancelAnimation(scale);
+        cancelAnimation(translateX);
+        cancelAnimation(translateY);
+        isPinching.value = false;
+        didPinch.value = false;
+        isCardInteracting.value = false;
+        savedScale.value = scale.value;
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
+    }, [
+        didPinch,
+        isCardInteracting,
+        isPinching,
+        savedScale,
+        savedTranslateX,
+        savedTranslateY,
+        scale,
+        translateX,
+        translateY,
+    ]);
+
+    useEffect(() => resetGestureState, [resetGestureState]);
 
     const tapGesture = Gesture.Tap().onEnd((e) => {
         if (onTap) {
@@ -238,6 +262,7 @@ export function useMapGestures(
         zoomIn,
         zoomOut,
         recenter,
+        resetGestureState,
         mapAreaHeight: MAP_AREA_HEIGHT,
     };
 }

@@ -199,4 +199,20 @@ describe("useMapGestures", () => {
     expect(result.current.translateY.value).toBeLessThan(MAP_SIZE);
     expect(initialScale).toBeGreaterThan(0);
   });
+
+  it("resets transient gesture state on cleanup", () => {
+    const { result, unmount } = renderHook(() => useMapGestures());
+
+    act(() => {
+      result.current.isCardInteracting.value = true;
+      result.current.zoomIn();
+    });
+
+    act(() => {
+      unmount();
+    });
+
+    expect(result.current.isCardInteracting.value).toBe(false);
+    expect(mockCancelAnimation).toHaveBeenCalled();
+  });
 });

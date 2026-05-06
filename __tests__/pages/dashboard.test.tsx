@@ -6,6 +6,10 @@ jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+jest.mock("expo-router", () => ({
+  useFocusEffect: (effect: () => void | (() => void)) => effect(),
+}));
+
 jest.mock("@expo/vector-icons", () => ({
   Feather: "Feather",
 }));
@@ -197,6 +201,7 @@ describe("Dashboard page", () => {
   const recenter = jest.fn();
   const zoomIn = jest.fn();
   const zoomOut = jest.fn();
+  const resetGestureState = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -227,6 +232,7 @@ describe("Dashboard page", () => {
         zoomIn,
         zoomOut,
         recenter,
+        resetGestureState,
       };
     });
   });
@@ -268,6 +274,7 @@ describe("Dashboard page", () => {
     expect(zoomIn).toHaveBeenCalled();
     expect(zoomOut).toHaveBeenCalled();
     expect(recenter).toHaveBeenCalled();
+    expect(resetGestureState).toHaveBeenCalled();
   });
 
   it("handles selection and map tap reset callback", () => {
@@ -316,6 +323,7 @@ describe("Dashboard page", () => {
         zoomIn,
         zoomOut,
         recenter,
+        resetGestureState,
       };
     });
 

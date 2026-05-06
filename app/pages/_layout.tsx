@@ -10,7 +10,7 @@ export default function PagesLayout() {
                 tabBar={() => null}
                 screenOptions={{
                     headerShown: false,
-                    freezeOnBlur: true,
+                    freezeOnBlur: false,
                 }}
             />
             <BottomMenu />

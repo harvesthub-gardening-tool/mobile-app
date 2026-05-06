@@ -2,10 +2,8 @@ import { useState, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import {
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import { useFocusEffect } from "expo-router";
+import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
 import { useGardenStorage } from "@/hooks/useGardenStorage";
@@ -78,7 +76,15 @@ export default function Dashboard() {
     zoomIn,
     zoomOut,
     recenter,
+    resetGestureState,
   } = useMapGestures(handleMapTap);
+
+  useFocusEffect(
+    useCallback(() => {
+      resetGestureState();
+      return resetGestureState;
+    }, [resetGestureState]),
+  );
 
   const plantBounds = useMemo(() => {
     if (plants.length === 0) return null;
@@ -219,8 +225,7 @@ export default function Dashboard() {
   );
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={["top"]}>
+    <SafeAreaView style={styles.safe} edges={["top"]}>
         <GestureDetector gesture={composedGesture}>
           <Animated.View style={styles.mapContainer}>
             <View
@@ -320,15 +325,11 @@ export default function Dashboard() {
             </View>
           </View>
         )}
-      </SafeAreaView>
-    </GestureHandlerRootView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
   safe: {
     flex: 1,
     backgroundColor: colors.surface.base,
