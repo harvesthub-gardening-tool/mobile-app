@@ -25,6 +25,22 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Tests
+
+Run the full test suite with:
+
+```bash
+npm test
+```
+
+Generate a coverage report with:
+
+```bash
+npm run test:coverage
+```
+
+Jest will print the coverage summary in the terminal and generate the detailed coverage output in the `coverage/` folder.
+
 ## Get a fresh project
 
 When you're ready, run:
