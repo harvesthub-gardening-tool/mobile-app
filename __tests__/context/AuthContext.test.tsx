@@ -1,5 +1,5 @@
 import React from "react";
-import { renderHook, act } from "@testing-library/react-native";
+import { renderHook, act, waitFor } from "@testing-library/react-native";
 import { AuthProvider, useAuth } from "../../src/context/AuthContext";
 
 jest.mock("../../src/services/api", () => ({
@@ -40,6 +40,7 @@ describe("AuthContext — initial state", () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     expect(result.current.isLoading).toBe(true);
     expect(result.current.isAuthenticated).toBe(false);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
   });
 
   it("resolves to unauthenticated when no stored token", async () => {

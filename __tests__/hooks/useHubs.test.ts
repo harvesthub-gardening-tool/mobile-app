@@ -1,11 +1,11 @@
-import { renderHook, act } from "@testing-library/react-native";
+import { renderHook, act, waitFor } from "@testing-library/react-native";
 
-jest.mock("../../app/services/authService", () => ({
+jest.mock("../../src/services/authService", () => ({
   listHubs: jest.fn(),
 }));
 
-import { useHubs } from "../../app/hooks/useHubs";
-import { listHubs } from "../../app/services/authService";
+import { useHubs } from "../../src/hooks/useHubs";
+import { listHubs } from "../../src/services/authService";
 
 const mockListHubs = listHubs as jest.Mock;
 
@@ -16,6 +16,7 @@ describe("useHubs", () => {
     mockListHubs.mockResolvedValue([]);
     const { result } = renderHook(() => useHubs());
     expect(result.current.loading).toBe(true);
+    return waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("loads hubs on mount", async () => {
