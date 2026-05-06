@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type { PlacedPlant, PlacedSonde } from "../../types/garden";
+import type { HubInfo } from "@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb";
 import { listHubs } from "../../services/authService";
 import { listProbesForHubName, type ProbeSnapshot } from "../../services/gardenService";
 import { colors, withAlpha } from "../../theme";
@@ -23,7 +24,7 @@ type SondeListModalProps = {
     plants: PlacedPlant[];
     sondes: PlacedSonde[];
     onClose: () => void;
-    onSelectProbe: (probe: { nodeId: string; hubName: string }) => void;
+    onSelectProbe: (probe: { nodeId: string; hubId: string; hubName: string }) => void;
 };
 
 export function SondeListModal({
@@ -33,8 +34,8 @@ export function SondeListModal({
     onClose,
     onSelectProbe,
 }: SondeListModalProps) {
-    const [hubs, setHubs] = useState<string[]>([]);
-    const [selectedHubName, setSelectedHubName] = useState<string | null>(null);
+    const [hubs, setHubs] = useState<HubInfo[]>([]);
+    const [selectedHubId, setSelectedHubId] = useState<string | null>(null);
     const [availableProbes, setAvailableProbes] = useState<ProbeSnapshot[]>([]);
     const [loadingProbes, setLoadingProbes] = useState(false);
     const [probeError, setProbeError] = useState<string | null>(null);
@@ -48,12 +49,10 @@ export function SondeListModal({
             setProbeError(null);
             try {
                 const data = await listHubs();
-                const names = data
-                    .map((hub) => hub.hubName)
-                    .filter((name) => name.length > 0);
-                setHubs(names);
-                if (names.length > 0) {
-                    setSelectedHubName(names[0]);
+                const availableHubs = data.filter((hub) => hub.id.length > 0 && hub.hubName.length > 0);
+                setHubs(availableHubs);
+                if (availableHubs.length > 0) {
+                    setSelectedHubId(availableHubs[0].id);
                 }
             } catch (err: unknown) {
                 setProbeError(
@@ -62,7 +61,7 @@ export function SondeListModal({
                         : "Impossible de charger les hubs.",
                 );
                 setHubs([]);
-                setSelectedHubName(null);
+                setSelectedHubId(null);
             }
         };
 
@@ -70,11 +69,14 @@ export function SondeListModal({
     }, [visible]);
 
     useEffect(() => {
-        if (!visible || !selectedHubName) {
+        const selectedHub = hubs.find((hub) => hub.id === selectedHubId);
+        if (!visible || !selectedHub) {
             return;
         }
-        void loadProbes(selectedHubName);
-    }, [visible, selectedHubName]);
+        void loadProbes(selectedHub.hubName);
+    }, [visible, selectedHubId, hubs]);
+
+    const selectedHub = hubs.find((hub) => hub.id === selectedHubId) ?? null;
 
     const loadProbes = async (hubName: string) => {
         setLoadingProbes(true);
@@ -103,7 +105,10 @@ export function SondeListModal({
         if (existing) {
             return;
         }
-        onSelectProbe({ nodeId, hubName: selectedHubName ?? "Hub" });
+        if (!selectedHub) {
+            return;
+        }
+        onSelectProbe({ nodeId, hubId: selectedHub.id, hubName: selectedHub.hubName });
     };
 
     const sondeNodeIdBySondeId = new Map<string, string>(
@@ -150,11 +155,11 @@ export function SondeListModal({
                                 <Text style={styles.sectionTitle}>Sondes détectées</Text>
                                 <TouchableOpacity
                                     onPress={() => {
-                                        if (selectedHubName) {
-                                            void loadProbes(selectedHubName);
+                                        if (selectedHub) {
+                                            void loadProbes(selectedHub.hubName);
                                         }
                                     }}
-                                    disabled={!selectedHubName}
+                                    disabled={!selectedHub}
                                 >
                                     <Feather name="refresh-cw" size={16} color={colors.brand.secondary} />
                                 </TouchableOpacity>
@@ -162,22 +167,22 @@ export function SondeListModal({
 
                             {hubs.length > 0 ? (
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hubTabs}>
-                                    {hubs.map((hubName) => (
+                                    {hubs.map((hub) => (
                                         <TouchableOpacity
-                                            key={hubName}
+                                            key={hub.id}
                                             style={[
                                                 styles.hubTab,
-                                                selectedHubName === hubName && styles.hubTabActive,
+                                                selectedHubId === hub.id && styles.hubTabActive,
                                             ]}
-                                            onPress={() => setSelectedHubName(hubName)}
+                                            onPress={() => setSelectedHubId(hub.id)}
                                         >
                                             <Text
                                                 style={[
                                                     styles.hubTabText,
-                                                    selectedHubName === hubName && styles.hubTabTextActive,
+                                                    selectedHubId === hub.id && styles.hubTabTextActive,
                                                 ]}
                                             >
-                                                {hubName}
+                                                {hub.hubName}
                                             </Text>
                                         </TouchableOpacity>
                                     ))}
@@ -206,7 +211,7 @@ export function SondeListModal({
                                                 <Feather name="radio" size={16} color={colors.brand.secondary} />
                                                 <View>
                                                     <Text style={styles.probeName}>Sonde disponible</Text>
-                                                    <Text style={styles.probeMeta}>Hub: {selectedHubName ?? "-"}</Text>
+                                                    <Text style={styles.probeMeta}>Hub: {selectedHub?.hubName ?? "-"}</Text>
                                                 </View>
                                             </View>
                                             <Text

@@ -65,6 +65,10 @@ export function useGardenStorage() {
                                 typeof s.nodeId === "string"
                                     ? s.nodeId
                                     : "",
+                            hubId:
+                                typeof s.hubId === "string" && s.hubId.trim().length > 0
+                                    ? s.hubId.trim()
+                                    : undefined,
                             hubName:
                                 typeof s.hubName === "string" && s.hubName.trim().length > 0
                                     ? s.hubName
@@ -164,7 +168,7 @@ export function useGardenStorage() {
         [plants, savePlants],
     );
 
-    const addSonde = useCallback((options?: { nodeId?: string; hubName?: string }) => {
+    const addSonde = useCallback((options?: { nodeId?: string; hubId?: string; hubName?: string }) => {
         const nextNodeId = options?.nodeId?.trim() ?? "";
         if (!nextNodeId) {
             return null;
@@ -178,6 +182,7 @@ export function useGardenStorage() {
             x: MAP_SIZE / 2,
             y: MAP_SIZE / 2 + sondes.length * 80,
             nodeId: nextNodeId,
+            hubId: options?.hubId?.trim() || undefined,
             hubName: options?.hubName?.trim() || "Hub",
         };
         saveSondes([...sondes, created]);

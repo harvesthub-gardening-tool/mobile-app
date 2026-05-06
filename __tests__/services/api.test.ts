@@ -20,6 +20,10 @@ jest.mock("@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb", ()
   GardenService: {},
 }));
 
+jest.mock("@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb", () => ({
+  ControlService: {},
+}));
+
 import * as SecureStore from "expo-secure-store";
 import { getStoredToken, setStoredToken, removeStoredToken } from "../../app/services/api";
 

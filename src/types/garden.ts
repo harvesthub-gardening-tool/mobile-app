@@ -10,6 +10,7 @@ export type PlacedSonde = {
     x: number;
     y: number;
     nodeId: string;
+    hubId?: string;
     hubName: string;
 };
 

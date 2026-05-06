@@ -157,13 +157,13 @@ jest.mock("../../app/components/garden", () => {
     }: {
       visible: boolean;
       onClose: () => void;
-      onSelectProbe: (probe: { nodeId: string; hubName: string }) => void;
+      onSelectProbe: (probe: { nodeId: string; hubId: string; hubName: string }) => void;
     }) =>
       visible ? (
         <RN.View>
           <RN.Text>sonde-modal</RN.Text>
           <RN.TouchableOpacity
-            onPress={() => onSelectProbe({ nodeId: "node-2", hubName: "Hub B" })}
+            onPress={() => onSelectProbe({ nodeId: "node-2", hubId: "2", hubName: "Hub B" })}
           >
             <RN.Text>sonde-select</RN.Text>
           </RN.TouchableOpacity>

@@ -37,13 +37,14 @@ const baseSonde = {
   x: 0,
   y: 0,
   nodeId: "node-1",
+  hubId: "1",
   hubName: "Hub A",
 };
 
 describe("SondeListModal", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockListHubs.mockResolvedValue([{ hubName: "Hub A" }, { hubName: "Hub B" }]);
+    mockListHubs.mockResolvedValue([{ id: "1", hubName: "Hub A" }, { id: "2", hubName: "Hub B" }]);
     mockListProbesForHubName.mockResolvedValue([
       { nodeId: "node-1", airTemperature: 22.2, airHumidity: 50 },
       { nodeId: "node-2", airTemperature: 21, airHumidity: 60 },
@@ -85,6 +86,7 @@ describe("SondeListModal", () => {
     fireEvent.press(getAllByText("Ajouter")[0]);
     expect(onSelectProbe).toHaveBeenCalledWith({
       nodeId: "node-1",
+      hubId: "1",
       hubName: "Hub A",
     });
   });

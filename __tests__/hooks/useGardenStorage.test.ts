@@ -227,14 +227,15 @@ describe("addSonde", () => {
     expect(result.current.sondes).toHaveLength(0);
   });
 
-  it("creates sonde with nodeId and hubName", async () => {
+  it("creates sonde with nodeId, hubId, and hubName", async () => {
     const { result } = renderHook(() => useGardenStorage());
     await waitForStorage();
 
-    act(() => { result.current.addSonde({ nodeId: "node-1", hubName: "My Hub" }); });
+    act(() => { result.current.addSonde({ nodeId: "node-1", hubId: "42", hubName: "My Hub" }); });
 
     expect(result.current.sondes).toHaveLength(1);
     expect(result.current.sondes[0].nodeId).toBe("node-1");
+    expect(result.current.sondes[0].hubId).toBe("42");
     expect(result.current.sondes[0].hubName).toBe("My Hub");
   });
 
@@ -397,6 +398,19 @@ describe("migration", () => {
     await waitForStorage();
 
     expect(result.current.sondes[0].hubName).toBe("Hub");
+  });
+
+  it("preserves missing legacy sonde hubId as undefined", async () => {
+    const legacy = [
+      { id: "s1", x: 0, y: 0, nodeId: "n1", hubName: "Hub" },
+    ];
+    mockStorage.getItem.mockImplementation((key: string) =>
+      Promise.resolve(key.includes("_sondes") ? JSON.stringify(legacy) : null),
+    );
+    const { result } = renderHook(() => useGardenStorage());
+    await waitForStorage();
+
+    expect(result.current.sondes[0].hubId).toBeUndefined();
   });
 
   it("clamps migrated size to MIN_CARD_SIZE", async () => {

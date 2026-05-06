@@ -191,8 +191,8 @@ export default function Dashboard() {
   );
 
   const handleSelectProbe = useCallback(
-    (probe: { nodeId: string; hubName: string }) => {
-      const sonde = addSonde({ nodeId: probe.nodeId, hubName: probe.hubName });
+    (probe: { nodeId: string; hubId: string; hubName: string }) => {
+      const sonde = addSonde({ nodeId: probe.nodeId, hubId: probe.hubId, hubName: probe.hubName });
       if (!sonde) {
         return;
       }

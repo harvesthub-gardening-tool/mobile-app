@@ -12,10 +12,25 @@ import {
 import { Feather } from "@expo/vector-icons";
 import type { PlacedPlant, PlacedSonde, PlantType } from "../../types/garden";
 import { PLANT_CATALOG } from "../../constants/garden";
+import {
+  createMotorCommand,
+  getMotorReasonPresentation,
+  pollMotorCommandStatus,
+} from "../../services/controlService";
 import { getSondeDisplayName } from "../../utils/sondeDisplay";
 import { colors, withAlpha } from "../../theme";
+import type { MotorCommand } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
+import { MotorCommandStatus } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const DEFAULT_MOTOR_DURATION_MS = 3000;
+
+const NON_TERMINAL_MOTOR_STATUSES = new Set<MotorCommandStatus>([
+  MotorCommandStatus.QUEUED,
+  MotorCommandStatus.LEASED_TO_HUB,
+  MotorCommandStatus.SENT_TO_PROBE,
+  MotorCommandStatus.EXECUTING,
+]);
 
 type PlantDetailModalProps = {
   plant: PlacedPlant | null;
@@ -33,6 +48,32 @@ function getCategoryLabel(category: string): string {
   return "Herbe aromatique";
 }
 
+function getMotorStatusLabel(command: MotorCommand | null): string | null {
+  const status = command?.status ?? null;
+  const reasonPresentation = getMotorReasonPresentation(command);
+
+  switch (status) {
+    case MotorCommandStatus.QUEUED:
+      return "Commande en attente...";
+    case MotorCommandStatus.LEASED_TO_HUB:
+      return "Commande transmise au hub...";
+    case MotorCommandStatus.SENT_TO_PROBE:
+      return "Commande envoyée à la sonde...";
+    case MotorCommandStatus.EXECUTING:
+      return "Arrosage en cours...";
+    case MotorCommandStatus.SUCCEEDED:
+      return "Arrosage terminé avec succès.";
+    case MotorCommandStatus.FAILED:
+      return reasonPresentation?.message ?? "Échec de la commande. Vous pouvez réessayer.";
+    case MotorCommandStatus.EXPIRED:
+      return reasonPresentation?.message ?? "Commande expirée avant exécution. Vous pouvez réessayer.";
+    case MotorCommandStatus.CANCELLED:
+      return "Commande annulée. Vous pouvez réessayer.";
+    default:
+      return null;
+  }
+}
+
 export function PlantDetailModal({
   plant,
   sondes,
@@ -44,12 +85,20 @@ export function PlantDetailModal({
   const [editing, setEditing] = useState(false);
   const [selectedPlantType, setSelectedPlantType] = useState<PlantType | null>(null);
   const [search, setSearch] = useState("");
+  const [motorCommand, setMotorCommand] = useState<MotorCommand | null>(null);
+  const [motorCommandNodeId, setMotorCommandNodeId] = useState<string | null>(null);
+  const [motorLoading, setMotorLoading] = useState(false);
+  const [motorError, setMotorError] = useState<string | null>(null);
 
   useEffect(() => {
     if (plant) {
       setSelectedPlantType(plant.plantType);
       setSearch("");
       setEditing(startInEditMode);
+      setMotorCommand(null);
+      setMotorCommandNodeId(null);
+      setMotorLoading(false);
+      setMotorError(null);
     }
   }, [plant, startInEditMode]);
 
@@ -57,6 +106,17 @@ export function PlantDetailModal({
 
   const isEditing = editing || startInEditMode;
   const currentType = selectedPlantType ?? plant.plantType;
+  const linkedSonde = plant.sondeId
+    ? sondes.find((s) => s.id === plant.sondeId)
+    : null;
+  const linkedNodeId = linkedSonde?.nodeId.trim() ?? "";
+  const linkedHubId = linkedSonde?.hubId?.trim() ?? "";
+  const canTriggerMotor = linkedNodeId.length > 0 && linkedHubId.length > 0;
+  const motorStatus = motorCommand?.status ?? null;
+  const motorStatusLabel = getMotorStatusLabel(motorCommand);
+  const hasActiveCommandForProbe =
+    motorCommandNodeId === linkedNodeId && motorStatus !== null && NON_TERMINAL_MOTOR_STATUSES.has(motorStatus);
+  const motorActionDisabled = motorLoading || hasActiveCommandForProbe;
 
   const filteredCatalog = search.trim()
     ? PLANT_CATALOG.filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase()))
@@ -70,6 +130,32 @@ export function PlantDetailModal({
   const handleSave = () => {
     onSave(plant.id, currentType, plant.width, plant.height, 1);
     handleClose();
+  };
+
+  const handleMotorTrigger = async () => {
+    if (!linkedSonde || !canTriggerMotor || motorActionDisabled) return;
+
+    setMotorLoading(true);
+    setMotorError(null);
+    setMotorCommand(null);
+    setMotorCommandNodeId(linkedNodeId);
+
+    try {
+      const response = await createMotorCommand(linkedHubId, linkedNodeId, DEFAULT_MOTOR_DURATION_MS);
+      const command = response.command ?? null;
+      setMotorCommand(command);
+
+      if (command?.commandId && NON_TERMINAL_MOTOR_STATUSES.has(command.status)) {
+        const result = await pollMotorCommandStatus(command.commandId, {
+          onStatusChange: (_status, updatedCommand) => setMotorCommand(updatedCommand),
+        });
+        setMotorCommand(result.command);
+      }
+    } catch (err: unknown) {
+      setMotorError(err instanceof Error ? err.message : "Impossible de lancer la commande moteur.");
+    } finally {
+      setMotorLoading(false);
+    }
   };
 
   return (
@@ -183,12 +269,11 @@ export function PlantDetailModal({
               <View style={styles.row}>
                 <Text style={styles.label}>Sonde</Text>
                 {(() => {
-                  const linked = sondes.find((s) => s.id === plant.sondeId);
-                  return linked ? (
+                  return linkedSonde ? (
                     <View style={[styles.sondeLinkBtn, styles.sondeLinkBtnActive]}>
                       <Feather name="check-circle" size={10} color={colors.text.onPrimary} />
                       <Text style={[styles.sondeLinkText, styles.sondeLinkTextActive]}>
-                        {getSondeDisplayName(linked, sondes)}
+                        {getSondeDisplayName(linkedSonde, sondes)}
                       </Text>
                     </View>
                   ) : (
@@ -196,6 +281,46 @@ export function PlantDetailModal({
                   );
                 })()}
               </View>
+
+              {canTriggerMotor && (
+                <View style={styles.motorPanel}>
+                  <View style={styles.motorPanelCopy}>
+                    <Text style={styles.motorTitle}>Commande moteur</Text>
+                    <Text style={styles.motorHint}>
+                      Lance un arrosage court et sécurisé de {DEFAULT_MOTOR_DURATION_MS / 1000}s.
+                    </Text>
+                    {motorLoading && !motorStatusLabel ? (
+                      <Text style={styles.motorStatus}>Création de la commande...</Text>
+                    ) : null}
+                    {motorStatusLabel ? (
+                      <Text
+                        style={[
+                          styles.motorStatus,
+                          motorStatus === MotorCommandStatus.SUCCEEDED && styles.motorStatusSuccess,
+                          (motorStatus === MotorCommandStatus.FAILED || motorStatus === MotorCommandStatus.EXPIRED) &&
+                            styles.motorStatusDanger,
+                        ]}
+                      >
+                        {motorStatusLabel}
+                      </Text>
+                    ) : null}
+                    {motorError ? <Text style={styles.motorStatusDanger}>{motorError}</Text> : null}
+                  </View>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Lancer le moteur de la sonde"
+                    style={[styles.motorButton, motorActionDisabled && styles.motorButtonDisabled]}
+                    disabled={motorActionDisabled}
+                    activeOpacity={0.86}
+                    onPress={handleMotorTrigger}
+                  >
+                    <Feather name="droplet" size={15} color={colors.text.onPrimary} />
+                    <Text style={styles.motorButtonText}>
+                      {motorActionDisabled ? "En cours" : "Arroser"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={styles.btns}>
                 <TouchableOpacity style={[styles.btnDelete, styles.btnDeleteSingle]} onPress={() => onDelete(plant.id)}>
@@ -477,6 +602,64 @@ const styles = StyleSheet.create({
     color: colors.brand.secondary,
   },
   sondeLinkTextActive: {
+    color: colors.text.onPrimary,
+  },
+  motorPanel: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: colors.surface.low,
+    borderWidth: 1,
+    borderColor: withAlpha(colors.border.subtle, 0.2),
+  },
+  motorPanelCopy: {
+    flex: 1,
+  },
+  motorTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.text.primary,
+  },
+  motorHint: {
+    fontSize: 11,
+    color: colors.text.muted,
+    marginTop: 3,
+  },
+  motorStatus: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.brand.secondary,
+    marginTop: 6,
+  },
+  motorStatusSuccess: {
+    color: colors.state.success,
+  },
+  motorStatusDanger: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.state.danger,
+    marginTop: 6,
+  },
+  motorButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minWidth: 94,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.brand.primary,
+  },
+  motorButtonDisabled: {
+    opacity: 0.56,
+  },
+  motorButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
     color: colors.text.onPrimary,
   },
 });
