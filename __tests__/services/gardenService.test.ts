@@ -7,7 +7,7 @@ jest.mock("../../app/services/api", () => ({
   API_BASE_URL: "http://localhost:8080",
 }));
 
-import { getSummary, listProbesForHubName, insertSensorData } from "../../app/services/gardenService";
+import { getLast, getSummary, listProbesForHubName, insertSensorData } from "../../app/services/gardenService";
 import { gardenClient, getStoredToken } from "../../app/services/api";
 import { ConnectError, Code } from "@connectrpc/connect";
 
@@ -140,6 +140,32 @@ describe("listProbesForHubName", () => {
     const result = await listProbesForHubName("HubA");
     expect(result[0].airTemperature).toBeUndefined();
     expect(result[0].airHumidity).toBeUndefined();
+  });
+});
+
+describe("getLast", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetToken.mockResolvedValue("tok");
+  });
+
+  it("preserves zero readings when proto JSON omits default scalar fields", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ reading: { nodeId: "n-zero", time: 1234 } }),
+    }) as jest.Mock;
+
+    const result = await getLast("n-zero");
+
+    expect(result).toEqual({
+      nodeId: "n-zero",
+      time: 1234,
+      airTemperature: 0,
+      airPressure: 0,
+      airHumidity: 0,
+      soilTemperature: 0,
+      soilHumidity: 0,
+    });
   });
 });
 

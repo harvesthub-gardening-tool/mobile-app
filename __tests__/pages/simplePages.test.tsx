@@ -107,6 +107,19 @@ describe("Alerts page", () => {
     expect(getByText(/Rafraîchissement automatique toutes les 30 secondes/)).toBeTruthy();
   });
 
+  it("shows dry alerts even when sensor values are zero", () => {
+    mockUseSensorData.mockReturnValue(new Map([
+      ["node-dry", { soilHumidity: 0, soilTemperature: 0 }],
+      ["node-watered", { soilHumidity: 55, soilTemperature: 19.2 }],
+    ]));
+
+    const { getByText } = render(<Alerts />);
+
+    expect(getByText("À arroser")).toBeTruthy();
+    expect(getByText("0%")).toBeTruthy();
+    expect(getByText("0.0°C")).toBeTruthy();
+  });
+
   it("shows watering only for dry alert cards", async () => {
     const { findAllByText, getByTestId } = render(<Alerts />);
 

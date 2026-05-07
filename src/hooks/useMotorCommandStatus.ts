@@ -55,7 +55,7 @@ export function useMotorCommandStatus(
 
                 const result = await pollMotorCommandStatus(commandId, {
                     intervalMs: options.pollIntervalMs ?? 1000,
-                    maxTimeoutMs: options.maxTimeoutMs ?? 30000,
+                    maxTimeoutMs: options.maxTimeoutMs ?? 300000,
                 });
 
                 if (!abortController.signal.aborted) {

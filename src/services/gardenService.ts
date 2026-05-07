@@ -105,6 +105,10 @@ function readOptionalNumber(value: unknown): number | undefined {
     return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function readSensorNumber(value: unknown): number {
+    return readOptionalNumber(value) ?? 0;
+}
+
 function readOptionalTimestamp(value: unknown): number | undefined {
     if (typeof value === "number") {
         return Number.isFinite(value) ? value : undefined;
@@ -196,10 +200,10 @@ export async function getLast(nodeId: string): Promise<LastSensorReading | null>
     return {
         nodeId: readingNodeId,
         time: readOptionalTimestamp(reading?.time),
-        airTemperature: readOptionalNumber(reading?.airTemperature ?? reading?.air_temperature),
-        airPressure: readOptionalNumber(reading?.airPressure ?? reading?.air_pressure),
-        airHumidity: readOptionalNumber(reading?.airHumidity ?? reading?.air_humidity),
-        soilTemperature: readOptionalNumber(reading?.soilTemperature ?? reading?.soil_temperature),
-        soilHumidity: readOptionalNumber(reading?.soilHumidity ?? reading?.soil_humidity),
+        airTemperature: readSensorNumber(reading?.airTemperature ?? reading?.air_temperature),
+        airPressure: readSensorNumber(reading?.airPressure ?? reading?.air_pressure),
+        airHumidity: readSensorNumber(reading?.airHumidity ?? reading?.air_humidity),
+        soilTemperature: readSensorNumber(reading?.soilTemperature ?? reading?.soil_temperature),
+        soilHumidity: readSensorNumber(reading?.soilHumidity ?? reading?.soil_humidity),
     };
 }
