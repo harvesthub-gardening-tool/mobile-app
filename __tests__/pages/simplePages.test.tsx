@@ -186,6 +186,70 @@ describe("Alerts page", () => {
     expect(await findAllByText("Arroser")).toHaveLength(1);
   });
 
+  it("shows watering success with observed time on the alert card", async () => {
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(new Date("2026-05-07T10:15:00.000Z").getTime());
+    mockCreateMotorCommand.mockResolvedValue({
+      command: {
+        commandId: "cmd-success",
+        status: MotorCommandStatus.QUEUED,
+      },
+    });
+    mockPollMotorCommandStatus.mockResolvedValue({
+      command: {
+        commandId: "cmd-success",
+        status: MotorCommandStatus.SUCCEEDED,
+      },
+      isTerminal: true,
+      timedOut: false,
+    });
+
+    const { findAllByText, getByText } = render(<Alerts />);
+
+    fireEvent.press((await findAllByText("Arroser"))[0]);
+
+    await waitFor(() => {
+      expect(getByText(/Arrosage terminé avec succès\./)).toBeTruthy();
+      expect(getByText(/10:15|12:15/)).toBeTruthy();
+    });
+
+    nowSpy.mockRestore();
+  });
+
+  it("shows watering failure with observed time on the alert card", async () => {
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(new Date("2026-05-07T14:42:00.000Z").getTime());
+    const mockReasonPresentation = jest.requireMock("../../src/services/controlService").getMotorReasonPresentation as jest.Mock;
+    mockReasonPresentation.mockReturnValue({
+      reasonCode: 7,
+      message: "La sonde a répondu trop tard au contrôleur moteur. Réessayez.",
+    });
+    mockCreateMotorCommand.mockResolvedValue({
+      command: {
+        commandId: "cmd-failed",
+        status: MotorCommandStatus.QUEUED,
+      },
+    });
+    mockPollMotorCommandStatus.mockResolvedValue({
+      command: {
+        commandId: "cmd-failed",
+        status: MotorCommandStatus.FAILED,
+        reasonCode: 7,
+      },
+      isTerminal: true,
+      timedOut: false,
+    });
+
+    const { findAllByText, getByText } = render(<Alerts />);
+
+    fireEvent.press((await findAllByText("Arroser"))[0]);
+
+    await waitFor(() => {
+      expect(getByText(/La sonde a répondu trop tard au contrôleur moteur\. Réessayez\./)).toBeTruthy();
+      expect(getByText(/14:42|16:42/)).toBeTruthy();
+    });
+
+    nowSpy.mockRestore();
+  });
+
   it("shows an empty French state when no plants are configured", () => {
     mockUseGardenStorage.mockReturnValue({ plants: [], sondes: [] });
     mockUseSensorData.mockReturnValue(new Map());

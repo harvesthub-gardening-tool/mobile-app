@@ -55,6 +55,13 @@ type StatusVisual = {
     icon: ComponentProps<typeof Feather>["name"];
 };
 
+type MotorCommandSummary = {
+    commandId: string;
+    status: MotorCommandStatus;
+    observedAt: number;
+    message: string;
+};
+
 const statusVisuals: Record<WaterStatus, StatusVisual> = {
     dry: {
         label: "À arroser",
@@ -222,9 +229,40 @@ function getMotorStatusLabel(command: MotorCommand | null): string | null {
     }
 }
 
+function isTerminalMotorStatus(status: MotorCommandStatus | null): status is MotorCommandStatus {
+    return (
+        status === MotorCommandStatus.SUCCEEDED ||
+        status === MotorCommandStatus.FAILED ||
+        status === MotorCommandStatus.EXPIRED ||
+        status === MotorCommandStatus.CANCELLED
+    );
+}
+
+function formatCommandObservedAt(timestampMs: number): string {
+    return new Date(timestampMs).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function buildMotorCommandSummary(command: MotorCommand, observedAt: number): MotorCommandSummary | null {
+    const message = getMotorStatusLabel(command);
+    if (!message || !isTerminalMotorStatus(command.status)) {
+        return null;
+    }
+
+    return {
+        commandId: command.commandId,
+        status: command.status,
+        observedAt,
+        message,
+    };
+}
+
 function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
     const [motorCommand, setMotorCommand] = useState<MotorCommand | null>(null);
     const [motorCommandNodeId, setMotorCommandNodeId] = useState<string | null>(null);
+    const [motorSummary, setMotorSummary] = useState<MotorCommandSummary | null>(null);
     const [motorLoading, setMotorLoading] = useState(false);
     const [motorError, setMotorError] = useState<string | null>(null);
 
@@ -235,6 +273,10 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
     const shouldShowMotorAction = plantStatus.status === "dry" || motorCommandNodeId === nodeId;
     const motorStatus = motorCommand?.status ?? null;
     const motorStatusLabel = getMotorStatusLabel(motorCommand);
+    const shouldShowLiveMotorStatus =
+        motorSummary === null ||
+        motorSummary.commandId !== motorCommand?.commandId ||
+        !isTerminalMotorStatus(motorCommand?.status ?? null);
     const hasActiveCommandForProbe =
         motorCommandNodeId === nodeId && motorStatus !== null && NON_TERMINAL_MOTOR_STATUSES.has(motorStatus);
     const motorActionDisabled = motorLoading || hasActiveCommandForProbe;
@@ -244,6 +286,12 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
             : motorStatus === MotorCommandStatus.FAILED || motorStatus === MotorCommandStatus.EXPIRED
                 ? styles.motorStatusDanger
                 : styles.motorStatus;
+    const motorSummaryStyle =
+        motorSummary?.status === MotorCommandStatus.SUCCEEDED
+            ? styles.motorStatusSuccess
+            : motorSummary?.status === MotorCommandStatus.FAILED || motorSummary?.status === MotorCommandStatus.EXPIRED
+                ? styles.motorStatusDanger
+                : styles.motorStatus;
 
     const handleMotorTrigger = async () => {
         if (!canTriggerMotor || motorActionDisabled) return;
@@ -251,6 +299,7 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
         setMotorLoading(true);
         setMotorError(null);
         setMotorCommand(null);
+        setMotorSummary(null);
         setMotorCommandNodeId(nodeId);
 
         try {
@@ -260,7 +309,12 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
 
             if (command?.commandId && NON_TERMINAL_MOTOR_STATUSES.has(command.status)) {
                 const result = await pollMotorCommandStatus(command.commandId, {
-                    onStatusChange: (_status, updatedCommand) => setMotorCommand(updatedCommand),
+                    onStatusChange: (_status, updatedCommand) => {
+                        setMotorCommand(updatedCommand);
+                        if (isTerminalMotorStatus(updatedCommand.status)) {
+                            setMotorSummary(buildMotorCommandSummary(updatedCommand, Date.now()));
+                        }
+                    },
                 });
                 if (result.timedOut) {
                     setMotorCommand(null);
@@ -268,6 +322,7 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
                     setMotorError("La commande prend plus de temps que prévu. Vous pouvez réessayer dans quelques instants.");
                 } else {
                     setMotorCommand(result.command);
+                    setMotorSummary(buildMotorCommandSummary(result.command, Date.now()));
                 }
             }
         } catch (err: unknown) {
@@ -323,7 +378,12 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
                     <View style={styles.motorCopy}>
                         <Text style={styles.motorTitle}>Action rapide</Text>
                         <Text style={styles.motorHint}>Déclenche l&apos;arrosage via {plantStatus.hubName ?? "le hub lié"}.</Text>
-                        {motorStatusLabel ? <Text style={motorStatusStyle}>{motorStatusLabel}</Text> : null}
+                        {shouldShowLiveMotorStatus && motorStatusLabel ? <Text style={motorStatusStyle}>{motorStatusLabel}</Text> : null}
+                        {motorSummary ? (
+                            <Text style={motorSummaryStyle}>
+                                {motorSummary.message} · {formatCommandObservedAt(motorSummary.observedAt)}
+                            </Text>
+                        ) : null}
                         {motorError ? <Text style={styles.motorStatusDanger}>{motorError}</Text> : null}
                     </View>
                     <TouchableOpacity
