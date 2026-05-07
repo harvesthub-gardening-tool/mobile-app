@@ -3,6 +3,7 @@ import { fireEvent, render, waitFor, within } from "@testing-library/react-nativ
 import { MotorCommandStatus } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
 
 const mockUseGardenStorage = jest.fn();
+const mockUseAlertMotorSummaries = jest.fn();
 const mockUseSensorData = jest.fn();
 const mockCreateMotorCommand = jest.fn();
 const mockPollMotorCommandStatus = jest.fn();
@@ -25,18 +26,21 @@ jest.mock("../../src/context/AuthContext", () => ({
 jest.mock("../../src/hooks/useHubs", () => ({
   useHubs: () => ({ hubs: [], loading: false, error: null, refresh: jest.fn() }),
 }));
-jest.mock("../../src/hooks/useGardenStorage", () => ({
+jest.mock("@/hooks/useGardenStorage", () => ({
   useGardenStorage: () => mockUseGardenStorage(),
 }));
-jest.mock("../../src/hooks/useSensorData", () => ({
+jest.mock("@/hooks/useAlertMotorSummaries", () => ({
+  useAlertMotorSummaries: () => mockUseAlertMotorSummaries(),
+}));
+jest.mock("@/hooks/useSensorData", () => ({
   useSensorData: () => mockUseSensorData(),
 }));
-jest.mock("../../src/services/controlService", () => ({
+jest.mock("@/services/controlService", () => ({
   createMotorCommand: (...args: unknown[]) => mockCreateMotorCommand(...args),
   getMotorReasonPresentation: jest.fn(() => null),
   pollMotorCommandStatus: (...args: unknown[]) => mockPollMotorCommandStatus(...args),
 }));
-jest.mock("../../src/services/authService", () => ({
+jest.mock("@/services/authService", () => ({
   listHubs: jest.fn().mockResolvedValue([]),
   changeEmail: jest.fn().mockResolvedValue({ token: "token" }),
   changePassword: jest.fn().mockResolvedValue(undefined),
@@ -50,6 +54,11 @@ import Hubs from "../../app/pages/hubs";
 describe("Alerts page", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAlertMotorSummaries.mockReturnValue({
+      summaries: {},
+      loaded: true,
+      setSummary: jest.fn(),
+    });
     mockUseGardenStorage.mockReturnValue({
       plants: [
         {
@@ -217,7 +226,7 @@ describe("Alerts page", () => {
 
   it("shows watering failure with observed time on the alert card", async () => {
     const nowSpy = jest.spyOn(Date, "now").mockReturnValue(new Date("2026-05-07T14:42:00.000Z").getTime());
-    const mockReasonPresentation = jest.requireMock("../../src/services/controlService").getMotorReasonPresentation as jest.Mock;
+    const mockReasonPresentation = jest.requireMock("@/services/controlService").getMotorReasonPresentation as jest.Mock;
     mockReasonPresentation.mockReturnValue({
       reasonCode: 7,
       message: "La sonde a répondu trop tard au contrôleur moteur. Réessayez.",
@@ -248,6 +257,28 @@ describe("Alerts page", () => {
     });
 
     nowSpy.mockRestore();
+  });
+
+  it("restores the latest watering command summary after remount", async () => {
+    mockUseAlertMotorSummaries.mockReturnValue({
+      summaries: {
+        "plant-dry": {
+          commandId: "cmd-restored",
+          status: MotorCommandStatus.SUCCEEDED,
+          observedAt: new Date("2026-05-07T09:05:00.000Z").getTime(),
+          message: "Arrosage terminé avec succès.",
+        },
+      },
+      loaded: true,
+      setSummary: jest.fn(),
+    });
+
+    const { getByText } = render(<Alerts />);
+
+    await waitFor(() => {
+      expect(getByText(/Arrosage terminé avec succès\./)).toBeTruthy();
+      expect(getByText(/09:05|11:05/)).toBeTruthy();
+    });
   });
 
   it("shows an empty French state when no plants are configured", () => {

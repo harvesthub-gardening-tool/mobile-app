@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import {
     ScrollView,
@@ -12,6 +12,7 @@ import type { MotorCommand } from "@harvesthub-gardening-tool/protos-typescript/
 import { MotorCommandStatus } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGardenStorage } from "@/hooks/useGardenStorage";
+import { useAlertMotorSummaries, type AlertMotorSummary } from "@/hooks/useAlertMotorSummaries";
 import { useSensorData } from "@/hooks/useSensorData";
 import {
     createMotorCommand,
@@ -53,13 +54,6 @@ type StatusVisual = {
     color: string;
     soft: string;
     icon: ComponentProps<typeof Feather>["name"];
-};
-
-type MotorCommandSummary = {
-    commandId: string;
-    status: MotorCommandStatus;
-    observedAt: number;
-    message: string;
 };
 
 const statusVisuals: Record<WaterStatus, StatusVisual> = {
@@ -245,7 +239,7 @@ function formatCommandObservedAt(timestampMs: number): string {
     });
 }
 
-function buildMotorCommandSummary(command: MotorCommand, observedAt: number): MotorCommandSummary | null {
+function buildMotorCommandSummary(command: MotorCommand, observedAt: number): AlertMotorSummary | null {
     const message = getMotorStatusLabel(command);
     if (!message || !isTerminalMotorStatus(command.status)) {
         return null;
@@ -259,10 +253,18 @@ function buildMotorCommandSummary(command: MotorCommand, observedAt: number): Mo
     };
 }
 
-function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
+function PlantStatusCard({
+    plantStatus,
+    persistedSummary,
+    onPersistSummary,
+}: {
+    plantStatus: PlantWaterStatus;
+    persistedSummary: AlertMotorSummary | null;
+    onPersistSummary: (summary: AlertMotorSummary | null) => void;
+}) {
     const [motorCommand, setMotorCommand] = useState<MotorCommand | null>(null);
     const [motorCommandNodeId, setMotorCommandNodeId] = useState<string | null>(null);
-    const [motorSummary, setMotorSummary] = useState<MotorCommandSummary | null>(null);
+    const [motorSummary, setMotorSummary] = useState<AlertMotorSummary | null>(persistedSummary);
     const [motorLoading, setMotorLoading] = useState(false);
     const [motorError, setMotorError] = useState<string | null>(null);
 
@@ -293,6 +295,10 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
                 ? styles.motorStatusDanger
                 : styles.motorStatus;
 
+    useEffect(() => {
+        setMotorSummary(persistedSummary);
+    }, [persistedSummary]);
+
     const handleMotorTrigger = async () => {
         if (!canTriggerMotor || motorActionDisabled) return;
 
@@ -300,6 +306,7 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
         setMotorError(null);
         setMotorCommand(null);
         setMotorSummary(null);
+        onPersistSummary(null);
         setMotorCommandNodeId(nodeId);
 
         try {
@@ -312,7 +319,9 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
                     onStatusChange: (_status, updatedCommand) => {
                         setMotorCommand(updatedCommand);
                         if (isTerminalMotorStatus(updatedCommand.status)) {
-                            setMotorSummary(buildMotorCommandSummary(updatedCommand, Date.now()));
+                            const summary = buildMotorCommandSummary(updatedCommand, Date.now());
+                            setMotorSummary(summary);
+                            onPersistSummary(summary);
                         }
                     },
                 });
@@ -322,7 +331,9 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
                     setMotorError("La commande prend plus de temps que prévu. Vous pouvez réessayer dans quelques instants.");
                 } else {
                     setMotorCommand(result.command);
-                    setMotorSummary(buildMotorCommandSummary(result.command, Date.now()));
+                    const summary = buildMotorCommandSummary(result.command, Date.now());
+                    setMotorSummary(summary);
+                    onPersistSummary(summary);
                 }
             }
         } catch (err: unknown) {
@@ -405,6 +416,7 @@ function PlantStatusCard({ plantStatus }: { plantStatus: PlantWaterStatus }) {
 
 export default function Alerts() {
     const { plants, sondes } = useGardenStorage();
+    const { summaries, loaded, setSummary } = useAlertMotorSummaries();
     const sensorData = useSensorData();
 
     const plantStatuses = useMemo(
@@ -483,7 +495,12 @@ export default function Alerts() {
                 ) : (
                     <View style={styles.statusList}>
                         {plantStatuses.map((plantStatus) => (
-                            <PlantStatusCard key={plantStatus.id} plantStatus={plantStatus} />
+                            <PlantStatusCard
+                                key={plantStatus.id}
+                                plantStatus={plantStatus}
+                                persistedSummary={loaded ? summaries[plantStatus.id] ?? null : null}
+                                onPersistSummary={(summary) => setSummary(plantStatus.id, summary)}
+                            />
                         ))}
                     </View>
                 )}
