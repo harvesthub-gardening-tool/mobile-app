@@ -6,6 +6,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@bufbuild/protobuf/codegenv2$": "<rootDir>/node_modules/@bufbuild/protobuf/dist/cjs/codegenv2/index.js",
+    "^@bufbuild/protobuf/(wkt|reflect|wire|codegenv1)$": "<rootDir>/node_modules/@bufbuild/protobuf/dist/cjs/$1/index.js",
     "^../../app/(components|constants|context|hooks|services|theme|types|utils)/(.*)$": "<rootDir>/src/$1/$2",
   },
   testPathIgnorePatterns: ["/node_modules/", "__tests__/mocks/"],

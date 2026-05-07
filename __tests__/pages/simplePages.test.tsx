@@ -7,8 +7,16 @@ const mockUseAlertMotorSummaries = jest.fn();
 const mockUseSensorData = jest.fn();
 const mockCreateMotorCommand = jest.fn();
 const mockPollMotorCommandStatus = jest.fn();
+const mockSendChatMessage = jest.fn();
 
 jest.mock("@expo/vector-icons", () => ({ Feather: "Feather" }));
+jest.mock("react-native-markdown-display", () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => {
+    const ReactNative = require("react-native");
+    return <ReactNative.Text>{children}</ReactNative.Text>;
+  },
+}));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -44,6 +52,9 @@ jest.mock("@/services/authService", () => ({
   listHubs: jest.fn().mockResolvedValue([]),
   changeEmail: jest.fn().mockResolvedValue({ token: "token" }),
   changePassword: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock("@/services/chatService", () => ({
+  sendChatMessage: (...args: unknown[]) => mockSendChatMessage(...args),
 }));
 
 import Alerts from "../../app/pages/alerts";
@@ -292,6 +303,10 @@ describe("Alerts page", () => {
 });
 
 describe("Chat page", () => {
+  beforeEach(() => {
+    mockSendChatMessage.mockReset();
+  });
+
   it("renders without crashing", () => {
     const { toJSON } = render(<Chat />);
     expect(toJSON()).toBeTruthy();
@@ -300,6 +315,26 @@ describe("Chat page", () => {
   it("shows page title", () => {
     const { getByText } = render(<Chat />);
     expect(getByText("Chat")).toBeTruthy();
+  });
+
+  it("shows chatbot-ready input shell", () => {
+    const { getByText } = render(<Chat />);
+    expect(getByText("Assistant Harvest Hub")).toBeTruthy();
+    expect(getByText("Raccourcis")).toBeTruthy();
+    expect(getByText("Message")).toBeTruthy();
+  });
+
+  it("renders assistant responses through markdown", async () => {
+    mockSendChatMessage.mockResolvedValue("## Conseils\n- Arroser **Tomate** ce soir");
+
+    const { getByLabelText, getByRole, getByText } = render(<Chat />);
+
+    fireEvent.changeText(getByLabelText("Message pour l'assistant jardin"), "Donne-moi des conseils");
+    fireEvent.press(getByRole("button"));
+
+    await waitFor(() => {
+      expect(getByText("## Conseils\n- Arroser **Tomate** ce soir")).toBeTruthy();
+    });
   });
 });
 

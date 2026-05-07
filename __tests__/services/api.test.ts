@@ -16,6 +16,10 @@ jest.mock("@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb", () => 
   AuthService: {},
 }));
 
+jest.mock("@harvesthub-gardening-tool/protos-typescript/chat/v1/chat_pb", () => ({
+  ChatService: {},
+}));
+
 jest.mock("@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb", () => ({
   GardenService: {},
 }));

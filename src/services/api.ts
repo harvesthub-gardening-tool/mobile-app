@@ -2,6 +2,7 @@ import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import * as SecureStore from "expo-secure-store";
 import { AuthService } from "@harvesthub-gardening-tool/protos-typescript/auth/v2/auth_pb";
+import { ChatService } from "@harvesthub-gardening-tool/protos-typescript/chat/v1/chat_pb";
 import { GardenService } from "@harvesthub-gardening-tool/protos-typescript/garden/v2/garden_pb";
 import { ControlService } from "@harvesthub-gardening-tool/protos-typescript/control/v1/control_pb";
 import { API_BASE_URL } from "../config";
@@ -38,3 +39,4 @@ export const transport = createConnectTransport({
 export const authClient = createClient(AuthService, transport);
 export const gardenClient = createClient(GardenService, transport);
 export const controlClient = createClient(ControlService, transport);
+export const chatClient = createClient(ChatService, transport);
